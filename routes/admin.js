@@ -47,7 +47,7 @@ router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
     });
     response.status(200).send({
         status: true,
-        message: 'Request received'
+        message: 'Request received Successfully'
     })
 });
 
