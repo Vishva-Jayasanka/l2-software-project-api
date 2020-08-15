@@ -43,12 +43,13 @@ router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
             response.status(500).send(Errors.serverError);
         } else {
             console.log(module);
+            response.status(200).send({
+                status: true,
+                message: 'Request received successfully'
+            });
         }
     });
-    response.status(200).send({
-        status: true,
-        message: 'Request received successfully'
-    })
+
 });
 
 module.exports = router;
