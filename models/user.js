@@ -11,7 +11,10 @@ const userSchema = new Schema({
     email: String,
     verificationCode: Number,
     verificationCodeSentTime: Date,
-    registeredModules: Array,
+    registeredModules: [{
+        moduleCode: String,
+        lectureHours: Array,
+    }],
     currentRegistration: {
         semester: Number,
         modules: Array

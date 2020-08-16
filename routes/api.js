@@ -157,10 +157,12 @@ router.post('/check-username', (request, response) => {
 
 router.post('/get-modules', verifyToken, (request, response) => {
     const user = request.user;
+    const registeredModules = user.registeredModules.map(module => module.moduleCode);
+
     Module.aggregate([
-        {$match: {moduleCode: {$in: user.registeredModules}}},
+        {$match: {moduleCode: {$in: registeredModules}}},
         {$lookup: {from: 'user', localField: 'teachers', foreignField: 'username', as: 'teachers'}},
-        {$lookup: {from: 'lectureHour', localField: 'moduleCode', foreignField: 'moduleCode', as: 'lectureHours'}},
+        {$lookup: {from: 'lectureHour', localField: 'lectureHours', foreignField: '_id', as: 'lectureHours'}},
         {
             $project: {
                 _id: 0,
@@ -174,12 +176,13 @@ router.post('/get-modules', verifyToken, (request, response) => {
                 description: 1,
             }
         },
-        {$project: {lectureHours: {_id: 0, completedLectures: 0}, results: {_id: 0}}}
+        {$project: {lectureHours: {_id:0, __v: 0}, results: {_id: 0}}}
     ], (error, modules) => {
         if (error) {
             console.log(error);
             response.status(500).send(Errors.serverError);
         } else {
+            console.log(modules.map(module => module.lectureHours));
             Result.find({studentID: user.username}, (error, results) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
