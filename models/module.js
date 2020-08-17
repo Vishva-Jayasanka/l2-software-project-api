@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 const moduleSchema = new Schema({
-    moduleCode: String,
     moduleName: String,
     description: String,
     colorCode: String,

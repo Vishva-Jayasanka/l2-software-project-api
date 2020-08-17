@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const ObjectID = require('mongodb').ObjectID;
 
 const Errors = require('../errors/errors');
 const User = require('../models/user');
 const Module = require('../models/module');
+const LectureHour = require('../models/lecture-hour');
 const verifyToken = require('../modules/user-verification').VerifyToken;
 
 
@@ -13,6 +15,10 @@ function verifyAdmin(request, response, next) {
     } else {
         return response.status(401).send(Errors.unauthorizedRequest);
     }
+}
+
+function convertTime(time) {
+    return parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
 }
 
 router.post('/get-teachers', verifyToken, verifyAdmin, (request, response) => {
@@ -29,26 +35,27 @@ router.post('/get-teachers', verifyToken, verifyAdmin, (request, response) => {
 });
 
 router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
-    console.log(request.body);
-    const info = request.body.data;
-    Module.updateOne({moduleCode: request.body.moduleCode}, {
-        moduleCode: info.moduleCode,
-        moduleName: info.moduleName,
-        teachers: info.teachers.map(obj => obj.username),
-        credits: info.credits,
-        semester: info.semester,
-        description: info.description
-    }, (error, module) => {
-        if (error) {
-            response.status(500).send(Errors.serverError);
-        } else {
-            console.log(module);
-            response.status(200).send({
-                status: true,
-                message: 'Request received successfully'
-            });
-        }
+
+    const info = request.body.moduleDetails;
+    info.lectureHours.forEach(lectureHour => {
+        lectureHour.startingTime = convertTime(lectureHour.startingTime);
+        lectureHour.endingTime = convertTime(lectureHour.endingTime);
     });
+
+    LectureHour.bulkWrite(info.lectureHours.map(entry => ({
+            updateOne: {
+                filter: {_id: ObjectID(entry.id)},
+                update: {$set: entry}
+            }
+        })), (error, status) => {
+            if (!error) {
+                console.log(status);
+            } else {
+                console.error(error);
+            }
+        }
+    )
+
 
 });
 
