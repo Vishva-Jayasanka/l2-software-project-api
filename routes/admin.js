@@ -37,10 +37,12 @@ router.post('/get-teachers', verifyToken, verifyAdmin, (request, response) => {
 router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
 
     const info = request.body.moduleDetails;
+    const oldCode = request.body.oldCode;
     info.lectureHours.forEach(lectureHour => {
         lectureHour.startingTime = convertTime(lectureHour.startingTime);
         lectureHour.endingTime = convertTime(lectureHour.endingTime);
     });
+    const IDs = info.lectureHours.map(obj => ObjectID(obj.id));
 
     LectureHour.bulkWrite(info.lectureHours.map(entry => ({
             updateOne: {
@@ -48,10 +50,34 @@ router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
                 update: {$set: entry}
             }
         })), (error, status) => {
-            if (!error) {
-                console.log(status);
+            if (error) {
+                response.status(500).send(Errors.serverError);
             } else {
-                console.error(error);
+                Module.updateOne({moduleCode: oldCode}, {$pull: {lectureHours: {$nin: IDs}}}, {multi: true}, (error, res) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        if(info.newLectureHours && info.newLectureHours.length !== 0) {
+                            info.newLectureHours.forEach(lectureHour => {
+                                lectureHour.startingTime = convertTime(lectureHour.startingTime);
+                                lectureHour.endingTime = convertTime(lectureHour.endingTime);
+                            })
+                            LectureHour.insertMany(info.newLectureHours, (error, savedData) => {
+                                if (error) {
+                                    response.status(500).send(Errors.serverError);
+                                } else {
+                                    Module.updateOne({moduleCode: oldCode}, {$push: {lectureHours: {$each: savedData.map(obj => ObjectID(obj._id))}}}, (error, res) => {
+                                        if (error) {
+                                            response.status(500).send(Errors.serverError);
+                                        } else {
+
+                                        }
+                                    })
+                                }
+                            });
+                        }
+                    }
+                });
             }
         }
     )
