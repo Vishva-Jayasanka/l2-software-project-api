@@ -35,53 +35,82 @@ router.post('/get-teachers', verifyToken, verifyAdmin, (request, response) => {
 });
 
 router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
-
     const info = request.body.moduleDetails;
-    const oldCode = request.body.oldCode;
-    info.lectureHours.forEach(lectureHour => {
-        lectureHour.startingTime = convertTime(lectureHour.startingTime);
-        lectureHour.endingTime = convertTime(lectureHour.endingTime);
-    });
-    const IDs = info.lectureHours.map(obj => ObjectID(obj.id));
-
-    LectureHour.bulkWrite(info.lectureHours.map(entry => ({
-            updateOne: {
-                filter: {_id: ObjectID(entry.id)},
-                update: {$set: entry}
-            }
-        })), (error, status) => {
-            if (error) {
-                response.status(500).send(Errors.serverError);
-            } else {
-                Module.updateOne({moduleCode: oldCode}, {$pull: {lectureHours: {$nin: IDs}}}, {multi: true}, (error, res) => {
-                    if (error) {
-                        response.status(500).send(Errors.serverError);
-                    } else {
-                        if(info.newLectureHours && info.newLectureHours.length !== 0) {
-                            info.newLectureHours.forEach(lectureHour => {
-                                lectureHour.startingTime = convertTime(lectureHour.startingTime);
-                                lectureHour.endingTime = convertTime(lectureHour.endingTime);
-                            })
-                            LectureHour.insertMany(info.newLectureHours, (error, savedData) => {
-                                if (error) {
-                                    response.status(500).send(Errors.serverError);
-                                } else {
-                                    Module.updateOne({moduleCode: oldCode}, {$push: {lectureHours: {$each: savedData.map(obj => ObjectID(obj._id))}}}, (error, res) => {
-                                        if (error) {
-                                            response.status(500).send(Errors.serverError);
-                                        } else {
-
-                                        }
-                                    })
-                                }
-                            });
-                        }
-                    }
-                });
-            }
+    Module.findOneAndUpdate({moduleCode: request.body.oldCode}, [{
+        $set: {
+            moduleCode: info.moduleCode,
+            moduleName: info.moduleName,
+            credits: parseInt(info.credits),
+            semester: parseInt(info.semester),
+            description: info.description,
+            teachers: request.body.teachers.map(teacher => teacher.username),
         }
-    )
+    }], (error, updatedModule) => {
+        if (error) {
+            response.status(500).send(Errors.serverError);
+        } else {
+            info.lectureHours.forEach(lectureHour => {
+                lectureHour.startingTime = convertTime(lectureHour.startingTime);
+                lectureHour.endingTime = convertTime(lectureHour.endingTime);
+            });
+            const IDs = info.lectureHours.map(obj => ObjectID(obj.id));
+            LectureHour.bulkWrite(info.lectureHours.map(entry => ({
+                updateOne: {
+                    filter: {_id: ObjectID(entry.id)},
+                    update: {$set: entry}
+                }
+            })), (error, status) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    Module.updateOne({moduleCode: info.moduleCode}, {$pull: {lectureHours: {$nin: IDs}}}, {multi: true}, (error, res) => {
+                        if (error) {
+                            response.status(500).send(Errors.serverError);
+                        } else {
+                            if (info.newLectureHours && info.newLectureHours.length !== 0) {
+                                info.newLectureHours.forEach(lectureHour => {
+                                    lectureHour.startingTime = convertTime(lectureHour.startingTime);
+                                    lectureHour.endingTime = convertTime(lectureHour.endingTime);
+                                });
+                                LectureHour.insertMany(info.newLectureHours, (error, savedData) => {
+                                    if (error) {
+                                        response.status(500).send(Errors.serverError);
+                                    } else {
+                                        const newLectureHourIDs = savedData.map(obj => ObjectID(obj._id));
+                                        Module.updateOne({moduleCode: info.moduleCode}, {$push: {lectureHours: {$each: newLectureHourIDs}}}, (error, res) => {
+                                            if (error) {
+                                                response.status(500).send(Errors.serverError);
+                                            } else {
+                                                User.find({'currentRegistration.modules': ObjectID(updatedModule._id)}, {
+                                                    registeredModules: {$elemMatch: {moduleCode: ObjectID('5f2039370c88331b10a98b19')}}
+                                                }, (error, res) => {
+                                                    if (error) {
+                                                        console.log(error);
+                                                    } else {
+                                                        console.log(res.map(obj => JSON.stringify(obj.registeredModules)));
+                                                    }
+                                                });
+                                                response.status(200).send({
+                                                    status: true,
+                                                    message: 'Module updated successfully'
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                response.status(200).send({
+                                    status: true,
+                                    message: 'Module updated successfully'
+                                });
+                            }
+                        }
+                    });
+                }
+            });
 
+        }
+    });
 
 });
 

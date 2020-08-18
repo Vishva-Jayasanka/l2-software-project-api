@@ -157,14 +157,14 @@ router.post('/check-username', (request, response) => {
 
 router.post('/get-modules', verifyToken, (request, response) => {
     const user = request.user;
-    const registeredModules = user.registeredModules.map(module => module.moduleCode);
+    const registeredModules = user.registeredModules.map(module => ObjectID(module.moduleCode));
     Module.aggregate([
-        {$match: {moduleCode: {$in: registeredModules}}},
+        {$match: {_id: {$in: registeredModules}}},
         {$lookup: {from: 'user', localField: 'teachers', foreignField: 'username', as: 'teachers'}},
         {$lookup: {from: 'lectureHour', localField: 'lectureHours', foreignField: '_id', as: 'lectureHours'}},
         {
             $project: {
-                _id: 0,
+                _id: 1,
                 moduleCode: 1,
                 moduleName: 1,
                 teachers: {username: 1, firstName: 1, lastName: 1},
