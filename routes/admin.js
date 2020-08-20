@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const ObjectID = require('mongodb').ObjectID;
 
 const Errors = require('../errors/errors');
@@ -21,6 +22,23 @@ function convertTime(time) {
     return parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
 }
 
+function updateLectureHoursOfUser(moduleID, lectureHourIDs, response) {
+    User.updateMany({
+        'currentRegistration.modules': mongoose.Types.ObjectId(moduleID),
+        'registeredModules.moduleCode': mongoose.Types.ObjectId(moduleID)
+    }, {'registeredModules.$.lectureHours': lectureHourIDs}, (error, data) => {
+        if (error) {
+            response.status(500).send(Errors.serverError);
+        } else {
+            console.log(data);
+            response.status(200).send({
+                status: true,
+                message: 'Module updated successfully'
+            })
+        }
+    });
+}
+
 router.post('/get-teachers', verifyToken, verifyAdmin, (request, response) => {
     User.find({role: 'teacher'}, {_id: 0, username: 1, firstName: 1, lastName: 1}, (error, teachers) => {
         if (error) {
@@ -29,7 +47,7 @@ router.post('/get-teachers', verifyToken, verifyAdmin, (request, response) => {
             response.status(200).send({
                 status: true,
                 teachers: teachers
-            })
+            });
         }
     });
 });
@@ -76,33 +94,19 @@ router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
                                     if (error) {
                                         response.status(500).send(Errors.serverError);
                                     } else {
-                                        const newLectureHourIDs = savedData.map(obj => ObjectID(obj._id));
+                                        const newLectureHourIDs = savedData.map(obj => mongoose.Types.ObjectId(obj._id));
+                                        console.log(newLectureHourIDs[0]);
                                         Module.updateOne({moduleCode: info.moduleCode}, {$push: {lectureHours: {$each: newLectureHourIDs}}}, (error, res) => {
                                             if (error) {
                                                 response.status(500).send(Errors.serverError);
                                             } else {
-                                                User.find({'currentRegistration.modules': ObjectID(updatedModule._id)}, {
-                                                    registeredModules: {$elemMatch: {moduleCode: ObjectID('5f2039370c88331b10a98b19')}}
-                                                }, (error, res) => {
-                                                    if (error) {
-                                                        console.log(error);
-                                                    } else {
-                                                        console.log(res.map(obj => JSON.stringify(obj.registeredModules)));
-                                                    }
-                                                });
-                                                response.status(200).send({
-                                                    status: true,
-                                                    message: 'Module updated successfully'
-                                                });
+                                                updateLectureHoursOfUser(updatedModule._id, IDs.concat(newLectureHourIDs), response);
                                             }
                                         });
                                     }
                                 });
                             } else {
-                                response.status(200).send({
-                                    status: true,
-                                    message: 'Module updated successfully'
-                                });
+                                updateLectureHoursOfUser(updatedModule._id, IDs, response);
                             }
                         }
                     });
@@ -112,6 +116,17 @@ router.post('/edit-module', verifyToken, verifyAdmin, (request, response) => {
         }
     });
 
+});
+
+router.post('/delete-module', verifyToken, verifyAdmin, function(request, response) {
+    const moduleCode = request.body.moduleCode;
+    response.status(200).send({
+        status: true,
+        message: 'Request received successfully'
+    });
+    // Module.delete({moduleCode: moduleCode}, (request, response) => {
+    //
+    // });
 });
 
 module.exports = router;

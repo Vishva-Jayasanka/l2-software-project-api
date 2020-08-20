@@ -12,7 +12,7 @@ const userSchema = new Schema({
     verificationCode: Number,
     verificationCodeSentTime: Date,
     registeredModules: [{
-        moduleCode: String,
+        moduleCode: mongoose.Types.ObjectId,
         lectureHours: Array,
     }],
     currentRegistration: {
