@@ -11,10 +11,10 @@ const userSchema = new Schema({
     email: String,
     verificationCode: Number,
     verificationCodeSentTime: Date,
-    registeredModules: [{
+    registeredModules: [mongoose.Schema({
         moduleCode: mongoose.Types.ObjectId,
         lectureHours: Array,
-    }],
+    }, {_id: false})],
     currentRegistration: {
         semester: Number,
         modules: Array
