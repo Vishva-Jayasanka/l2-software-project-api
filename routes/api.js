@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const ObjectID = require('mongodb').ObjectID;
 const mongoClient = require('mongodb').MongoClient;
+const sql = require('mssql');
 
 const User = require('../models/user');
 const Module = require('../models/module');
@@ -23,7 +24,34 @@ mongoose.connect(db, {
     if (error) {
         console.log('Error: ' + error);
     } else {
-        console.log('Successfully connected to the database!');
+        console.log('Successfully connected to the Mongodb Server!');
+    }
+});
+
+const config = {
+    server: 'LAPTOP-T4KK4VD3',
+    instance: 'MSSQLSERVER',
+    user: 'jayasanka',
+    password: '123456',
+    database: 'tutorial_01',
+    options: {
+        encrypt: false,
+    }
+}
+
+sql.connect(config, error => {
+    if (error) {
+        console.log('Error:' + error);
+    } else {
+        console.log('Successfully connected to the MS SQL Server!');
+        const req = new sql.Request();
+        req.query('SELECT * FROM client WHERE clientNo=\'C002\'', (error, data) => {
+            if (error) {
+                console.log('Error: ' + error);
+            } else {
+                console.log(data.recordset);
+            }
+        });
     }
 });
 
