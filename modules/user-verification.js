@@ -1,11 +1,13 @@
 const jwt = require('jsonwebtoken');
 const ObjectID = require('mongodb').ObjectID;
+const sql = require('mssql');
 
 const Errors = require('../errors/errors');
 const User = require('../models/user');
+const {poolPromise} = require('../routes/sql-connection');
 
 module.exports = {
-    VerifyToken: function (request, response, next) {
+    VerifyToken: async function (request, response, next) {
         if (!request.headers.authentication) {
             return response.status(401).send(Errors.unauthorizedRequest);
         }
@@ -18,18 +20,25 @@ module.exports = {
             if (!payload) {
                 return response.status(401).send(Errors.unauthorizedRequest);
             } else {
-                User.findById(ObjectID(payload.subject), function (error, user) {
-                    if (error) {
-                        return response.status(401).send(Errors.unauthorizedRequest);
-                    } else {
-                        if (!user) {
-                            return response.status(401).send(Errors.unauthorizedRequest);
-                        } else {
-                            request.user = user;
-                            next();
-                        }
-                    }
-                });
+                try {
+                    const pool = await poolPromise;
+                    const result = await pool.request()
+                        .input('username', sql.Char(7), payload.subject)
+                        .execute('checkValidity', (error, result) => {
+                            if (error) {
+                                return response.status(500).send(Errors.serverError);
+                            } else {
+                                if (result.returnValue === 1) {
+                                    request.username = payload.subject;
+                                    next();
+                                } else {
+                                    return response.status(401).send(Errors.unauthorizedRequest);
+                                }
+                            }
+                        });
+                } catch (error) {
+                    return response.status(500).send(Errors.unauthorizedRequest);
+                }
             }
         } catch (exception) {
             return response.status(401).send(Errors.serverError);

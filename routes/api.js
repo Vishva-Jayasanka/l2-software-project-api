@@ -16,7 +16,7 @@ const verifyToken = require('../modules/user-verification').VerifyToken;
 const Errors = require('../errors/errors');
 const emailVerification = require('../modules/email-verification');
 const db = 'mongodb://localhost:27017/lmsdb';
-const { poolPromise } = require('./sql-connection');
+const {poolPromise} = require('./sql-connection');
 
 mongoose.connect(db, {
     useNewUrlParser: true,
@@ -53,53 +53,23 @@ router.post('/login', async (request, response) => {
             .input('password', sql.VarChar(20), userData.password)
             .execute('checkUserCredentials', (error, result) => {
                 if (error) {
-                    console.log('Error: ' + error);
+                    response.status(500).send(Errors.serverError);
                 } else {
-                    if (result.output['']) {
-                        console.log('Yes')
+                    if (result.returnValue === 1) {
+                        let user = result.recordset[0];
+                        user.token = jwt.sign({subject: user.username}, 'secret_key');
+                        response.status(200).send(user);
                     } else {
-                        console.log('No')
+                        response.status(401).send({
+                            status: false,
+                            message: 'Username or password is incorrect!'
+                        });
                     }
                 }
-            })
-        console.log(result.recordset);
-    } catch (error) {
-        console.log('Error: ' + error);
-    }
-
-    User.findOne({username: userData.username}, (error, user) => {
-        if (error) {
-            response.status(500).send({
-                status: false,
-                message: 'Internal server error!'
             });
-        } else {
-            if (!user) {
-                response.status(401).send({
-                    status: false,
-                    message: 'Username or password is incorrect!'
-                });
-            } else {
-                if (user.password !== userData.password) {
-                    response.status(401).send({
-                        status: false,
-                        message: 'Username or password is incorrect!'
-                    });
-                } else {
-                    const token = jwt.sign({subject: user._id}, 'secret_key');
-                    response.status(200).send({
-                        firstName: user.firstName,
-                        lastName: user.lastName,
-                        email: user.email,
-                        role: user.role,
-                        verified: user.verified,
-                        currentRegistration: user.currentRegistration.semester,
-                        token: token
-                    });
-                }
-            }
-        }
-    })
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
 });
 
 router.post('/is-verified', verifyToken, (request, response) => {
@@ -180,46 +150,21 @@ router.post('/check-username', (request, response) => {
     });
 });
 
-router.post('/get-modules', verifyToken, (request, response) => {
-    const user = request.user;
-    const registeredModules = user.registeredModules.map(module => ObjectID(module.moduleCode));
-    Module.aggregate([
-        {$match: {_id: {$in: registeredModules}}},
-        {$lookup: {from: 'user', localField: 'teachers', foreignField: 'username', as: 'teachers'}},
-        {$lookup: {from: 'lectureHour', localField: 'lectureHours', foreignField: '_id', as: 'lectureHours'}},
-        {
-            $project: {
-                _id: 1,
-                moduleCode: 1,
-                moduleName: 1,
-                teachers: {username: 1, firstName: 1, lastName: 1},
-                lectureHours: 1,
-                credits: 1,
-                level: 1,
-                semester: 1,
-                description: 1,
+router.post('/get-modules', verifyToken, async (request, response) => {
+    const username = request.username;
+    const pool = await poolPromise;
+    const result = await pool.request()
+        .input('studentID', sql.Char(7), username)
+        .query('SELECT M.moduleCode, M.moduleName, M.description, M.credits, E.year FROM Module M, Enrollment E WHERE E.studentID=@studentID AND E.moduleCode=M.moduleCode', (error, result) => {
+            if (error) {
+                response.status(500).send(Errors.serverError);
+            } else {
+                response.status(200).send({
+                    status: true,
+                    modules: result.recordset
+                });
             }
-        },
-        {$project: {lectureHours: {__v: 0}, results: {_id: 0}}}
-    ], (error, modules) => {
-        if (error) {
-            console.log(error);
-            response.status(500).send(Errors.serverError);
-        } else {
-            Result.find({studentID: user.username}, (error, results) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    response.status(200).send({
-                        status: true,
-                        currentModules: user.currentRegistration.modules,
-                        modules: modules,
-                        results: results
-                    });
-                }
-            });
-        }
-    });
+        });
 });
 
 router.post('/get-attendance', verifyToken, (request, response) => {
