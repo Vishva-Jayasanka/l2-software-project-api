@@ -16,6 +16,7 @@ const verifyToken = require('../modules/user-verification').VerifyToken;
 const Errors = require('../errors/errors');
 const emailVerification = require('../modules/email-verification');
 const db = 'mongodb://localhost:27017/lmsdb';
+const { poolPromise } = require('./sql-connection');
 
 mongoose.connect(db, {
     useNewUrlParser: true,
@@ -28,32 +29,6 @@ mongoose.connect(db, {
     }
 });
 
-const config = {
-    server: 'LAPTOP-T4KK4VD3',
-    instance: 'MSSQLSERVER',
-    user: 'jayasanka',
-    password: '123456',
-    database: 'tutorial_01',
-    options: {
-        encrypt: false,
-    }
-}
-
-sql.connect(config, error => {
-    if (error) {
-        console.log('Error:' + error);
-    } else {
-        console.log('Successfully connected to the MS SQL Server!');
-        const req = new sql.Request();
-        req.query('SELECT * FROM client WHERE clientNo=\'C002\'', (error, data) => {
-            if (error) {
-                console.log('Error: ' + error);
-            } else {
-                console.log(data.recordset);
-            }
-        });
-    }
-});
 
 function generateOTP(user, callback) {
     console.log(user.email)
@@ -68,8 +43,30 @@ function generateOTP(user, callback) {
     return true;
 }
 
-router.post('/login', (request, response) => {
+router.post('/login', async (request, response) => {
     let userData = request.body;
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('username', sql.Char(7), userData.username)
+            .input('password', sql.VarChar(20), userData.password)
+            .execute('checkUserCredentials', (error, result) => {
+                if (error) {
+                    console.log('Error: ' + error);
+                } else {
+                    if (result.output['']) {
+                        console.log('Yes')
+                    } else {
+                        console.log('No')
+                    }
+                }
+            })
+        console.log(result.recordset);
+    } catch (error) {
+        console.log('Error: ' + error);
+    }
+
     User.findOne({username: userData.username}, (error, user) => {
         if (error) {
             response.status(500).send({
