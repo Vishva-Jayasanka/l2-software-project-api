@@ -3,7 +3,6 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const ObjectID = require('mongodb').ObjectID;
-const mongoClient = require('mongodb').MongoClient;
 const sql = require('mssql');
 
 const User = require('../models/user');
@@ -31,7 +30,7 @@ mongoose.connect(db, {
 
 
 function generateOTP(user, callback) {
-    console.log(user.email)
+    console.log(user.email);
     const OTP = emailVerification.getRandomInt();
     User.update({_id: ObjectID(user._id)}, {
         email: user.email,
@@ -155,20 +154,31 @@ router.post('/get-modules', verifyToken, async (request, response) => {
     const pool = await poolPromise;
     const result = await pool.request()
         .input('studentID', sql.Char(7), username)
-        .query('SELECT M.moduleCode, M.moduleName, M.description, M.credits, E.year FROM Module M, Enrollment E WHERE E.studentID=@studentID AND E.moduleCode=M.moduleCode', (error, result) => {
+        .execute('getModules', (error, result) => {
             if (error) {
                 response.status(500).send(Errors.serverError);
             } else {
                 response.status(200).send({
                     status: true,
-                    modules: result.recordset
+                    modules: result.recordsets[0],
+                    teachers: result.recordsets[1],
+                    lectureHours: result.recordsets[2],
+                    results: result.recordsets[3]
                 });
             }
         });
 });
 
-router.post('/get-attendance', verifyToken, (request, response) => {
-    const user = request.user;
+router.post('/get-attendance', verifyToken, async (request, response) => {
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), request.username)
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
     Attendance.find({studentID: user.username}, {_id: 0}, (error, attendance) => {
         if (error) {
             response.status(500).send(Errors.serverError);

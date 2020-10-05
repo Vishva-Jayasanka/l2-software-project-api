@@ -30,6 +30,7 @@ module.exports = {
                             } else {
                                 if (result.returnValue === 1) {
                                     request.username = payload.subject;
+                                    request.role = result.recordset[0].roleName;
                                     next();
                                 } else {
                                     return response.status(401).send(Errors.unauthorizedRequest);
