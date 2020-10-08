@@ -151,22 +151,27 @@ router.post('/check-username', (request, response) => {
 
 router.post('/get-modules', verifyToken, async (request, response) => {
     const username = request.username;
-    const pool = await poolPromise;
-    const result = await pool.request()
-        .input('studentID', sql.Char(7), username)
-        .execute('getModules', (error, result) => {
-            if (error) {
-                response.status(500).send(Errors.serverError);
-            } else {
-                response.status(200).send({
-                    status: true,
-                    modules: result.recordsets[0],
-                    teachers: result.recordsets[1],
-                    lectureHours: result.recordsets[2],
-                    results: result.recordsets[3]
-                });
-            }
-        });
+   try {
+       const pool = await poolPromise;
+       const result = await pool.request()
+           .input('studentID', sql.Char(7), username)
+           .execute('getModules', (error, result) => {
+               if (error) {
+                   console.error(error);
+                   response.status(500).send(Errors.serverError);
+               } else {
+                   response.status(200).send({
+                       status: true,
+                       modules: result.recordsets[0],
+                       teachers: result.recordsets[1],
+                       lectureHours: result.recordsets[2],
+                       results: result.recordsets[3]
+                   });
+               }
+           });
+   } catch (error) {
+       console.error(error);
+   }
 });
 
 router.post('/get-attendance', verifyToken, async (request, response) => {
@@ -175,47 +180,38 @@ router.post('/get-attendance', verifyToken, async (request, response) => {
         const pool = await poolPromise;
         const result = await pool.request()
             .input('studentID', sql.Char(7), request.username)
+            .execute('getAttendance', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send(result.recordset);
+                }
+            });
     } catch (error) {
         response.status(500).send(Errors.serverError);
     }
 
-    Attendance.find({studentID: user.username}, {_id: 0}, (error, attendance) => {
-        if (error) {
-            response.status(500).send(Errors.serverError);
-        } else {
-            LectureHour.find({moduleCode: {$in: user.registeredModules}}, {
-                _id: 0,
-                moduleCode: 1,
-                type: 1,
-                completedLectures: 1
-            }, (error, modules) => {
+});
+
+router.post('/get-detailed-attendance', verifyToken, async (request, response) => {
+    const info = request.body;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), request.username)
+            .input('moduleCode', sql.Char(6), info.moduleCode)
+            .input('type', sql.VarChar(15), info.type)
+            .input('batch', sql.Int, info.batch)
+            .execute('getDetailedAttendance', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    Module.find({}, {
-                        _id: 0,
-                        moduleCode: 1,
-                        moduleName: 1,
-                        level: 1,
-                        semester: 1
-                    }, (error, moduleNames) => {
-                        if (error) {
-                            response.status(500).send(Errors.serverError);
-                        } else {
-                            response.status(200).send({
-                                status: true,
-                                currentRegistrations: user.currentRegistration.modules,
-                                registeredModules: user.registeredModules,
-                                moduleNames: moduleNames,
-                                completedLectures: modules,
-                                attendance: attendance
-                            });
-                        }
-                    });
+                    response.status(200).send(result.recordset);
                 }
             });
-        }
-    });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
 });
 
 router.post('/get-lecture-hours', verifyToken, function (request, response) {

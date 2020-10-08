@@ -143,4 +143,47 @@ router.post('/delete-module', verifyToken, verifyAdmin, async (request, response
     }
 });
 
+router.post('/get-module-lecture-hours', verifyToken, verifyAdmin, async (request, response) => {
+    const moduleCode = request.body.moduleCode;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('moduleCode', sql.Char(6), moduleCode)
+            .execute('getLectureHours', (error, result) => {
+               if (error) {
+                   response.status(500).send(Errors.serverError);
+               } else {
+                   response.status(200).send({
+                       status: true,
+                       moduleName: result.recordsets[0][0].moduleName,
+                       lectureHours: result.recordsets[1]
+                   });
+               }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+});
+
+router.post('/get-sessions', verifyToken, verifyAdmin, async (request, response) => {
+    const lectureHourID = request.body.lectureHourID;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('lectureHourID', sql.Int, lectureHourID)
+            .query('SELECT sessionID, dateHeld FROM Session WHERE lectureHourID = @lectureHOurID', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        sessions: result.recordset
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+});
+
 module.exports = router;
