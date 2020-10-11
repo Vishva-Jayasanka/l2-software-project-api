@@ -1,12 +1,16 @@
 const sql = require('mssql');
 const config = {
-    server: 'LAPTOP-T4KK4VD3',
+    // server: 'LAPTOP-T4KK4VD3',
+    server: 'vishwa.database.windows.net',
     instance: 'MSSQLSERVER',
-    user: 'jayasanka',
-    password: '123456',
+    // user: 'vishwa',
+    user: 'vishwa',
+    // password: '123456',
+    password: 'Porsche911gt3rs',
     database: 'lmsdb',
     options: {
-        encrypt: false,
+        // encrypt: false,
+        encrypt: true,
     }
 }
 
