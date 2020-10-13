@@ -25,8 +25,8 @@ router.post('/check-module', verifyToken, verifyAdmin, async (request, response)
                 } else {
                     if (result.returnValue === 1) {
                         response.status(200).send({
-                           status: true,
-                           message: 'Module does not exist..!'
+                            status: true,
+                            message: 'Module does not exist..!'
                         });
                     } else {
                         response.status(200).send({
@@ -100,7 +100,7 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    if(result.returnValue === 0) {
+                    if (result.returnValue === 0) {
                         response.status(200).send({
                             status: true,
                             message: 'Module saved successfully'
@@ -144,21 +144,30 @@ router.post('/delete-module', verifyToken, verifyAdmin, async (request, response
 });
 
 router.post('/get-module-lecture-hours', verifyToken, verifyAdmin, async (request, response) => {
+
     const moduleCode = request.body.moduleCode;
+
     try {
         const pool = await poolPromise;
         const result = await pool.request()
             .input('moduleCode', sql.Char(6), moduleCode)
             .execute('getLectureHours', (error, result) => {
-               if (error) {
-                   response.status(500).send(Errors.serverError);
-               } else {
-                   response.status(200).send({
-                       status: true,
-                       moduleName: result.recordsets[0][0].moduleName,
-                       lectureHours: result.recordsets[1]
-                   });
-               }
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.recordset.length === 0) {
+                        response.status(200).send({
+                            status: false,
+                            message: 'Module not found'
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            moduleName: result.recordsets[0][0].moduleName,
+                            lectureHours: result.recordsets[1]
+                        });
+                    }
+                }
             });
     } catch (error) {
         response.status(500).send(Errors.serverError);
@@ -184,6 +193,47 @@ router.post('/get-sessions', verifyToken, verifyAdmin, async (request, response)
     } catch (error) {
         response.status(500).send(Errors.serverError);
     }
+});
+
+router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, response) => {
+    const data = request.body;
+    console.log(data);
+    try {
+
+        const attendance = new sql.Table('SESSION_ATTENDANCE');
+        attendance.columns.add('studentID', sql.Char(7));
+
+        for (let record of data.attendance) {
+            if (record.status === 0) {
+                attendance.rows.add(record.index);
+            }
+        }
+
+        console.log(attendance);
+        console.log(attendance.rows[0]);
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('lectureHourID', sql.Int, data.lectureHourID)
+            .input('date', sql.Date, data.date)
+            .input('time', sql.Char(5), data.time)
+            .input('attendance', attendance)
+            .execute('addAttendance', (error, result) => {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        message: 'Successfully saved'
+                    });
+                }
+            });
+    } catch (error) {
+        console.error(error);
+        response.status(500).send(Errors.serverError);
+    }
+
 });
 
 module.exports = router;
