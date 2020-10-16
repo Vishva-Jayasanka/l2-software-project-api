@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="Azure SQL Database - lmsdb@vishwa.database.windows.net" uuid="bfcae296-dcb1-4fe9-b9f5-2af12cf50c0c">
-      <driver-ref>azure.ms</driver-ref>
+    <data-source source="LOCAL" name="MS SQL Database - lmsdb@LAPTOP-T4KK4VD3" uuid="e06a2dfe-8096-46bc-aaf6-33510de49abc">
+      <driver-ref>sqlserver.ms</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
-      <jdbc-url>jdbc:sqlserver://vishwa.database.windows.net:1433;database=lmsdb</jdbc-url>
+      <jdbc-url>jdbc:sqlserver://LAPTOP-T4KK4VD3;database=lmsdb</jdbc-url>
     </data-source>
   </component>
 </project>

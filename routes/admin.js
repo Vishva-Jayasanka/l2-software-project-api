@@ -4,7 +4,7 @@ const sql = require('mssql');
 
 const Errors = require('../errors/errors');
 const verifyToken = require('../modules/user-verification').VerifyToken;
-const {poolPromise} = require('./sql-connection');
+const {poolPromise} = require('../modules/sql-connection');
 
 function verifyAdmin(request, response, next) {
     if (request.role === 'admin') {
@@ -153,7 +153,14 @@ router.post('/get-module-lecture-hours', verifyToken, verifyAdmin, async (reques
             .input('moduleCode', sql.Char(6), moduleCode)
             .execute('getLectureHours', (error, result) => {
                 if (error) {
-                    response.status(500).send(Errors.serverError);
+                    if (error.number === 8016) {
+                        response.status(200).send({
+                            status: false,
+                            message: 'Invalid moduleCode'
+                        })
+                    } else {
+                        response.status(500).send(Errors.serverError);
+                    }
                 } else {
                     if (result.recordset.length === 0) {
                         response.status(200).send({
@@ -197,7 +204,7 @@ router.post('/get-sessions', verifyToken, verifyAdmin, async (request, response)
 
 router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, response) => {
     const data = request.body;
-    console.log(data);
+
     try {
 
         const attendance = new sql.Table('SESSION_ATTENDANCE');
@@ -208,9 +215,6 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
                 attendance.rows.add(record.index);
             }
         }
-
-        console.log(attendance);
-        console.log(attendance.rows[0]);
 
         const pool = await poolPromise;
         const result = await pool.request()
@@ -234,6 +238,64 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
         response.status(500).send(Errors.serverError);
     }
 
+});
+
+router.post('/get-session-attendance', verifyToken, verifyAdmin, async (request, response) => {
+
+    const sessionID = request.body.sessionID;
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('sessionID', sql.Int, sessionID)
+            .execute('getSessionAttendance', (error, result) => {
+                if (error) {
+                    response.status(200).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        attendance: result.recordset
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/save-attendance-changes', verifyToken, verifyAdmin, async (request, response) => {
+
+    const data = request.body;
+
+    try {
+
+        const attendance = new sql.Table('SESSION_ATTENDANCE');
+        attendance.columns.add('studentID', sql.Char(7));
+
+        for (let record of data.attendance) {
+            if (!record.status) {
+                attendance.rows.add(record.studentID);
+            }
+        }
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('sessionID', sql.Int, data.sessionID)
+            .input('attendance', attendance)
+            .execute('modifyAttendance', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        message: 'Attendance saved successfully'
+                    });
+                }
+            });
+    } catch(error) {
+        response.status(500).send(Errors.serverError);
+    }
 });
 
 module.exports = router;

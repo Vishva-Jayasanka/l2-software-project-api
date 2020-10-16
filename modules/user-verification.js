@@ -4,7 +4,7 @@ const sql = require('mssql');
 
 const Errors = require('../errors/errors');
 const User = require('../models/user');
-const {poolPromise} = require('../routes/sql-connection');
+const {poolPromise} = require('./sql-connection');
 
 module.exports = {
     VerifyToken: async function (request, response, next) {

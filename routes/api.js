@@ -15,7 +15,7 @@ const verifyToken = require('../modules/user-verification').VerifyToken;
 const Errors = require('../errors/errors');
 const emailVerification = require('../modules/email-verification');
 const db = 'mongodb://localhost:27017/lmsdb';
-const {poolPromise} = require('./sql-connection');
+const {poolPromise} = require('../modules/sql-connection');
 
 mongoose.connect(db, {
     useNewUrlParser: true,
@@ -237,5 +237,6 @@ router.post('/get-lecture-hours', verifyToken, function (request, response) {
         }
     });
 });
+
 
 module.exports = router;
