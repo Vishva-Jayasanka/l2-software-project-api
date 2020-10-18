@@ -151,27 +151,27 @@ router.post('/check-username', (request, response) => {
 
 router.post('/get-modules', verifyToken, async (request, response) => {
     const username = request.username;
-   try {
-       const pool = await poolPromise;
-       const result = await pool.request()
-           .input('studentID', sql.Char(7), username)
-           .execute('getModules', (error, result) => {
-               if (error) {
-                   console.error(error);
-                   response.status(500).send(Errors.serverError);
-               } else {
-                   response.status(200).send({
-                       status: true,
-                       modules: result.recordsets[0],
-                       teachers: result.recordsets[1],
-                       lectureHours: result.recordsets[2],
-                       results: result.recordsets[3]
-                   });
-               }
-           });
-   } catch (error) {
-       console.error(error);
-   }
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), username)
+            .execute('getModules', (error, result) => {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        modules: result.recordsets[0],
+                        teachers: result.recordsets[1],
+                        lectureHours: result.recordsets[2],
+                        results: result.recordsets[3]
+                    });
+                }
+            });
+    } catch (error) {
+        console.error(error);
+    }
 });
 
 router.post('/get-attendance', verifyToken, async (request, response) => {

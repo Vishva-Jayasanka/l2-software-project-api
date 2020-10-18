@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="MS SQL Database - lmsdb@LAPTOP-T4KK4VD3" uuid="e06a2dfe-8096-46bc-aaf6-33510de49abc">
+    <data-source source="LOCAL" name="MSSQL" uuid="e06a2dfe-8096-46bc-aaf6-33510de49abc">
       <driver-ref>sqlserver.ms</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
       <jdbc-url>jdbc:sqlserver://LAPTOP-T4KK4VD3;database=lmsdb</jdbc-url>
     </data-source>
-    <data-source source="LOCAL" name="lmsdb@vishwa-jayasanka.database.windows.net" uuid="db003603-540d-4e39-b408-b8383ec4c478">
+    <data-source source="LOCAL" name="Asure" uuid="db003603-540d-4e39-b408-b8383ec4c478">
       <driver-ref>azure.ms</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>

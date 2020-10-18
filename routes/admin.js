@@ -182,12 +182,13 @@ router.post('/get-module-lecture-hours', verifyToken, verifyAdmin, async (reques
 });
 
 router.post('/get-sessions', verifyToken, verifyAdmin, async (request, response) => {
-    const lectureHourID = request.body.lectureHourID;
+    const data = request.body;
     try {
         const pool = await poolPromise;
         const result = await pool.request()
-            .input('lectureHourID', sql.Int, lectureHourID)
-            .query('SELECT sessionID, dateHeld FROM Session WHERE lectureHourID = @lectureHOurID', (error, result) => {
+            .input('lectureHourID', sql.Int, data.lectureHourID)
+            .input('batch', sql.Int, data.batch)
+            .query('SELECT sessionID, dateHeld FROM Session WHERE lectureHourID = @lectureHOurID AND batch = @batch', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
@@ -219,6 +220,7 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
         const pool = await poolPromise;
         const result = await pool.request()
             .input('lectureHourID', sql.Int, data.lectureHourID)
+            .input('batch', sql.Int, data.batch)
             .input('date', sql.Date, data.date)
             .input('time', sql.Char(5), data.time)
             .input('attendance', attendance)
