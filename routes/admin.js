@@ -349,6 +349,7 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
             .input('type', sql.VarChar(15), data.type)
             .input('dateHeld', sql.Date, data.dateHeld)
             .input('allocation', sql.Int, data.allocation)
+            .input('hideMarks', sql.Bit, data.hideMarks)
             .input('results', results)
             .execute('uploadMarks', (error, result) => {
                 if (error) {
