@@ -31,6 +31,7 @@ router.post('/check-module', verifyToken, verifyAdmin, async (request, response)
                     } else {
                         response.status(200).send({
                             status: false,
+                            moduleName: result.recordset[0].moduleName,
                             message: 'Module Exists..!'
                         })
                     }
@@ -226,7 +227,6 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
             .input('attendance', attendance)
             .execute('addAttendance', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -236,7 +236,6 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
                 }
             });
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -298,6 +297,97 @@ router.post('/save-attendance-changes', verifyToken, verifyAdmin, async (request
     } catch(error) {
         response.status(500).send(Errors.serverError);
     }
+});
+
+router.post('/get-module-exams', verifyToken, verifyAdmin, async (request, response) => {
+
+    const data = request.body;
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('moduleCode', sql.Char(6), data.moduleCode)
+            .input('batch', sql.Int, data.batch)
+            .execute('getExams', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        exams: result.recordsets[0],
+                        allocationAvailable: 100 - result.recordsets[1][0].totalAllocation
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(200).send(Errors.serverError);
+    }
+
+});
+
+router.post('/upload-results', verifyToken, verifyAdmin, async (request, response) => {
+
+    const data = request.body;
+
+    try {
+
+        const results = new sql.Table('MARKS');
+        results.columns.add('studentID', sql.Char(7));
+        results.columns.add('mark', sql.Int);
+
+        for (let record of data.results) {
+            if (!record.status) {
+                results.rows.add(record.index, record.mark);
+            }
+        }
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('moduleCode', sql.Char(6), data.moduleCode)
+            .input('batch', sql.Int, data.batch)
+            .input('examID', sql.Int, data.examID)
+            .input('type', sql.VarChar(15), data.type)
+            .input('dateHeld', sql.Date, data.dateHeld)
+            .input('allocation', sql.Int, data.allocation)
+            .input('results', results)
+            .execute('uploadMarks', (error, result) => {
+                if (error) {
+                    if (error.number === 2627) {
+                        response.status(400).send({
+                            status: false,
+                            message: 'File contains duplicate student id numbers that are already has marks for this exam'
+                        });
+                    } else if (error.number === 547) {
+                        response.status(400).send({
+                            status: false,
+                            message: 'File contains student id numbers that are not registered in the system'
+                        });
+                    } else {
+                        response.status(500).send(Errors.serverError);
+                    }
+                } else {
+                    if (result.recordset && result.recordset[0].hasOwnProperty('totalAllocation')) {
+                        response.status(400).send({
+                            status: false,
+                            message: `Total allocation exceeds 100. Available allocation is ${Math.abs(result.recordset[0].totalAllocation - 100 - data.allocation)}`,
+                        });
+                    } else if (result.recordset && result.recordset[0].hasOwnProperty('invalidStudentID')) {
+                        response.status(400).send({
+                            status: false,
+                            message: result.recordset[0].invalidStudentID
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            message: 'Results successfully uploaded'
+                        });
+                    }
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
 });
 
 module.exports = router;

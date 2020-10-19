@@ -17,6 +17,7 @@ const config = {
     password: 'jayasanka',
     database: 'lmsdb',
     options: {
+        enableArithAbort: true,
         encrypt: false
     }
 }
