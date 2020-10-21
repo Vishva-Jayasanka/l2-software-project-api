@@ -247,10 +247,8 @@ router.post('/get-results', verifyToken, async (request, response) => {
             .input('studentID', sql.Char(7), studentID)
             .execute('getResults', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
-                    console.log(result.recordsets);
                     response.status(200).send({
                         status: true,
                         results: result.recordsets[1],
@@ -259,7 +257,6 @@ router.post('/get-results', verifyToken, async (request, response) => {
                 }
             });
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
