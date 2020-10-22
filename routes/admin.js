@@ -391,4 +391,17 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
 
 });
 
+router.post('/get-module-results', async (request, response) => {
+    const examID = request.body.examID;
+
+    try {
+        const pool = await poolPromise;
+        const result = await poo
+    } catch (error) {
+        console.error(error);
+        response.status(200).send(Errors.serverError);
+    }
+
+});
+
 module.exports = router;
