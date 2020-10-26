@@ -1,9 +1,11 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const ObjectID = require('mongodb').ObjectID;
 const sql = require('mssql');
+const fs = require('fs');
 
 const User = require('../models/user');
 const Module = require('../models/module');
@@ -259,6 +261,42 @@ router.post('/get-results', verifyToken, async (request, response) => {
     } catch (error) {
         response.status(500).send(Errors.serverError);
     }
+
+});
+
+router.post('/upload-profile-picture', verifyToken, async (request, response) => {
+
+    const image = request.body.profilePicture;
+
+    try {
+        if (!image) {
+            response.status(401).send({
+                status: false,
+                message: 'Image not found'
+            });
+        } else {
+            const path = './profile-pictures/' + request.username + '.png';
+            const base64Data = image.replace(/^data:([A-Za-z-+/]+);base64,/, '');
+            fs.writeFileSync(path, base64Data, {encoding: 'base64'});
+            response.send({
+                status: true,
+                message: 'profile picture updated successfully'
+            });
+        }
+    } catch (error) {
+        console.log(error);
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-profile-picture', verifyToken, async (request, response) => {
+
+    const image = fs.readFileSync('./profile-pictures/' + request.username + '.png', {encoding: 'base64'});
+    response.status(200).send({
+        status: true,
+        profilePicture: image
+    });
 
 });
 

@@ -294,7 +294,7 @@ router.post('/save-attendance-changes', verifyToken, verifyAdmin, async (request
                     });
                 }
             });
-    } catch(error) {
+    } catch (error) {
         response.status(500).send(Errors.serverError);
     }
 });
@@ -396,10 +396,85 @@ router.post('/get-module-results', async (request, response) => {
 
     try {
         const pool = await poolPromise;
-        const result = await poo
+        const result = await pool.request()
+            .input('examID', sql.Int, examID)
+            .execute('getResultOfExam', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordset
+                    });
+                }
+            });
     } catch (error) {
         console.error(error);
         response.status(200).send(Errors.serverError);
+    }
+
+});
+
+router.post('/edit-results', verifyToken, verifyAdmin, async (request, response) => {
+    const data = request.body.results;
+    console.log(data);
+
+    try {
+        const results = new sql.Table('MARKS');
+        results.columns.add('studentID', sql.Char(7));
+        results.columns.add('mark', sql.Int);
+
+        for (let record of data.results) {
+            results.rows.add(record.studentID, record.mark);
+        }
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('examID', sql.Int, data.examID)
+            .input('type', sql.VarChar(25), data.type)
+            .input('dateHeld', sql.Date, data.dateHeld)
+            .input('allocation', sql.Int, data.allocation)
+            .input('hideMarks', sql.Bit, data.hideMarks)
+            .input('results', results)
+            .execute('editResults', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    console.log(result);
+                    response.status(200).send({
+                        status: true,
+                        message: 'Results updated successfully'
+                    });
+                }
+            });
+    } catch (error) {
+        console.log(error);
+        response.status(500).send(Errors.serverError);
+    }
+});
+
+router.post('/delete-exam', verifyToken, verifyAdmin, async (request, response) => {
+    const examID = request.body.examID;
+
+    try {
+        const pool = await poolPromise;
+        const result = pool.request()
+            .input('examID', sql.Int, examID)
+            .execute('deleteExam', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(200).send(Errors.serverError);
+                } else {
+                    console.log(result);
+                    response.status(200).send({
+                        status: true,
+                        message: 'Exam deleted successfully'
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
     }
 
 });
