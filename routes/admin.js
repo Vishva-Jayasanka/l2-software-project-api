@@ -479,4 +479,79 @@ router.post('/delete-exam', verifyToken, verifyAdmin, async (request, response) 
 
 });
 
+router.post('/register-student', verifyToken, verifyAdmin, async (request, response) => {
+
+    const data = request.body.studentDetails;
+
+    try {
+
+        const year = (new Date().getFullYear()).toString().substring(2, 4);
+
+        const pool = await poolPromise;
+        const result0 = await pool.request()
+            .query("SELECT MAX(username) AS maxUsername FROM Users WHERE username LIKE '" + year + "%'", (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+
+                    const maxUsername = result.recordset[0].maxUsername === null ? (year + '4000A').toString() : result.recordset[0].maxUsername ;
+                    const studentID = (parseInt(maxUsername.substring(0, 6)) + 1).toString() + String.fromCharCode(((maxUsername.charCodeAt(6) - 60) % 26) + 65)
+                    const name = data.name.nameWithInitials.split(' ');
+
+                    const qualifications = new sql.Table('EDUCATION_QUALIFICATION');
+                    qualifications.columns.add('degree', sql.VarChar(50));
+                    qualifications.columns.add('institute', sql.VarChar(50));
+                    qualifications.columns.add('dateCompleted', sql.Date);
+                    qualifications.columns.add('class', sql.VarChar(20))
+
+                    for (let record of data.educationQualifications) {
+                        qualifications.rows.add(record.degree, record.institute, record.graduationDate, record.grade);
+                    }
+
+                    console.log(qualifications.rows);
+
+                    const result1 = pool.request()
+                        .input('studentID', sql.Char(7), studentID)
+                        .input('courseID', sql.Int, data.courseName)
+                        .input('fullName', sql.VarChar(100), data.name.fullName)
+                        .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
+                        .input('firstName', sql.VarChar(20), name[0])
+                        .input('lastName', sql.VarChar(20), name[1])
+                        .input('address', sql.VarChar(255), data.address.permanentAddress)
+                        .input('district', sql.Char(5), data.address.district)
+                        .input('province', sql.Char(4), data.address.province)
+                        .input('dateOfBirth', sql.Date, data.dateOfBirth)
+                        .input('race', sql.VarChar(15), data.race)
+                        .input('religion', sql.VarChar(15), data.religion)
+                        .input('gender', sql.Char(1), data.gender)
+                        .input('nic', sql.VarChar(12), data.nic)
+                        .input('email', sql.VarChar(50), data.contactDetails.email)
+                        .input('mobile', sql.VarChar(12), data.contactDetails.mobile)
+                        .input('home', sql.VarChar(12), data.contactDetails.home)
+                        .input('designation', sql.VarChar(50), data.employment.designation)
+                        .input('employer', sql.VarChar(50), data.employment.employer)
+                        .input('company', sql.VarChar(50), data.employment.company)
+                        .input('registrationFees', sql.Money, data.registration.registrationFees)
+                        .input('dateOfPayment', sql.Date, data.registration.dateOfPayment)
+                        .input('feesPaid', sql.Bit, data.registration.registrationFeesPaid)
+                        .input('educationQualifications', qualifications)
+                        .execute('registerStudent', (error, result) => {
+                            if (error) {
+                                response.status(500).send(Errors.serverError);
+                            } else {
+                                response.status(200).send({
+                                    status: true,
+                                    message: 'Student registered successfully'
+                                });
+                            }
+                        });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
 module.exports = router;

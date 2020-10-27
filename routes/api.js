@@ -292,11 +292,23 @@ router.post('/upload-profile-picture', verifyToken, async (request, response) =>
 
 router.post('/get-profile-picture', verifyToken, async (request, response) => {
 
-    const image = fs.readFileSync('./profile-pictures/' + request.username + '.png', {encoding: 'base64'});
-    response.status(200).send({
-        status: true,
-        profilePicture: image
-    });
+    try {
+        const image = fs.readFileSync('./profile-pictures/' + request.username + '.png', {encoding: 'base64'});
+        response.status(200).send({
+            status: true,
+            profilePicture: image
+        });
+    } catch (error) {
+        if (error.errno === -4058) {
+            const image = fs.readFileSync('./profile-pictures/default.png', {encoding: 'base64'});
+            response.status(200).send({
+                status: true,
+                profilePicture: image
+            });
+        } else {
+            response.status(500).send(Errors.serverError);
+        }
+    }
 
 });
 
