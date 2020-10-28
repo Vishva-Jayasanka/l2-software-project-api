@@ -162,12 +162,13 @@ router.post('/get-modules', verifyToken, async (request, response) => {
                     console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
+                    console.log(result.recordsets[3]);
                     response.status(200).send({
                         status: true,
                         modules: result.recordsets[0],
                         teachers: result.recordsets[1],
                         lectureHours: result.recordsets[2],
-                        results: result.recordsets[3]
+                        course: (result.recordsets[3][0]) ? result.recordsets[3][0].courseName : ''
                     });
                 }
             });

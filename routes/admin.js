@@ -92,9 +92,11 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
             .input('adminID', sql.Char(7), request.username)
             .input('moduleCode', sql.Char(6), info.moduleCode)
             .input('moduleName', sql.VarChar(50), info.moduleName)
+            .input('year', sql.Int, info.batch)
             .input('description', sql.VarChar(50), info.description)
             .input('credits', sql.Int, info.credits)
             .input('semester', sql.Int, info.semester)
+            .input('disabled', sql.Bit, info.disabled)
             .input('lectureHours', lectureHours)
             .input('teachers', teachers)
             .execute('addModule', (error, result) => {
