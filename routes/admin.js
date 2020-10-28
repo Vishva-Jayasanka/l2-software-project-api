@@ -409,7 +409,6 @@ router.post('/get-module-results', async (request, response) => {
                 }
             });
     } catch (error) {
-        console.error(error);
         response.status(200).send(Errors.serverError);
     }
 
@@ -417,7 +416,6 @@ router.post('/get-module-results', async (request, response) => {
 
 router.post('/edit-results', verifyToken, verifyAdmin, async (request, response) => {
     const data = request.body.results;
-    console.log(data);
 
     try {
         const results = new sql.Table('MARKS');
@@ -438,10 +436,8 @@ router.post('/edit-results', verifyToken, verifyAdmin, async (request, response)
             .input('results', results)
             .execute('editResults', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
-                    console.log(result);
                     response.status(200).send({
                         status: true,
                         message: 'Results updated successfully'
@@ -449,7 +445,6 @@ router.post('/edit-results', verifyToken, verifyAdmin, async (request, response)
                 }
             });
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 });
@@ -463,10 +458,8 @@ router.post('/delete-exam', verifyToken, verifyAdmin, async (request, response) 
             .input('examID', sql.Int, examID)
             .execute('deleteExam', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(200).send(Errors.serverError);
                 } else {
-                    console.log(result);
                     response.status(200).send({
                         status: true,
                         message: 'Exam deleted successfully'
@@ -508,8 +501,6 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                         qualifications.rows.add(record.degree, record.institute, record.graduationDate, record.grade);
                     }
 
-                    console.log(qualifications.rows);
-
                     const result1 = pool.request()
                         .input('studentID', sql.Char(7), studentID)
                         .input('courseID', sql.Int, data.courseName)
@@ -545,6 +536,39 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                                 });
                             }
                         });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/check-student-id', verifyToken, verifyAdmin, async (request, response) => {
+
+    const studentID = request.body.studentID;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('checkStudentID', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.recordset[0].name) {
+                        response.status(200).send({
+                            status: true,
+                            name: result.recordset[0].name
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: false,
+                            message: 'Student ID not found'
+                        });
+                    }
                 }
             });
 
