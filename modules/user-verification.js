@@ -47,13 +47,11 @@ module.exports = {
     },
     verifyWebSocketConnection: async function (request, socket, head, wsServer) {
         if (!request.headers['sec-websocket-protocol']) {
-            destroySocket(socket);
             return 'WebSocket connection refused!';
         }
         const token = request.headers['sec-websocket-protocol'];
         const payload = jwt.verify(token, "secret_key");
         if (!payload) {
-            destroySocket(socket);
             return 'WebSocket connection refused!';
         } else {
             const pool = await poolPromise;
@@ -61,7 +59,6 @@ module.exports = {
                 .input('username', sql.Char(7), payload.subject)
                 .execute('checkValidity', (error, result) => {
                     if (error) {
-                        destroySocket();
                         return 'WebSocket connection refused!';
                     } else {
                         if (result.returnValue === 1 && result.recordset[0].roleName === 'teacher') {
@@ -71,7 +68,6 @@ module.exports = {
                             });
                             return 'WebSocket connection refused!';
                         } else {
-                            destroySocket();
                             return 'WebSocket connection refused!';
                         }
                     }
@@ -81,11 +77,3 @@ module.exports = {
     }
 }
 
-function destroySocket(socket) {
-    socket.write(
-        'HTTP/1.1 401 Web Socket Protocol Handshake\r\n' +
-        'Upgrade: WebSocket\r\n' +
-        'Connection: Upgrade\r\n' +
-        '\r\n');
-    socket.destroy();
-}
