@@ -44,5 +44,47 @@ module.exports = {
         } catch (exception) {
             return response.status(401).send(Errors.serverError);
         }
+    },
+    verifyWebSocketConnection: async function (request, socket, head, wsServer) {
+        if (!request.headers['sec-websocket-protocol']) {
+            destroySocket(socket);
+            return 'WebSocket connection refused!';
+        }
+        const token = request.headers['sec-websocket-protocol'];
+        const payload = jwt.verify(token, "secret_key");
+        if (!payload) {
+            destroySocket(socket);
+            return 'WebSocket connection refused!';
+        } else {
+            const pool = await poolPromise;
+            const result = await pool.request()
+                .input('username', sql.Char(7), payload.subject)
+                .execute('checkValidity', (error, result) => {
+                    if (error) {
+                        destroySocket();
+                        return 'WebSocket connection refused!';
+                    } else {
+                        if (result.returnValue === 1) {
+                            wsServer.handleUpgrade(request, socket, head, socket => {
+                                wsServer.emit('connection', socket, request);
+                            });
+                            return 'WebSocket connection refused!';
+                        } else {
+                            destroySocket();
+                            return 'WebSocket connection refused!';
+                        }
+                    }
+                });
+        }
+
     }
+}
+
+function destroySocket(socket) {
+    socket.write(
+        'HTTP/1.1 401 Web Socket Protocol Handshake\r\n' +
+        'Upgrade: WebSocket\r\n' +
+        'Connection: Upgrade\r\n' +
+        '\r\n');
+    socket.destroy();
 }

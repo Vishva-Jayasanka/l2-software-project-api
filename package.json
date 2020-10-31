@@ -14,11 +14,13 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "express-fileupload": "^1.1.7-alpha.3",
+    "express-ws": "^4.0.0",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
+    "mongodb": "latest",
     "mongoose": "^5.9.19",
     "morgan": "^1.10.0",
-    "mongodb": "latest"
+    "ws": "^7.3.1"
   },
   "devDependencies": {
     "mssql": "^6.2.1",
