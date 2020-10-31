@@ -64,7 +64,8 @@ module.exports = {
                         destroySocket();
                         return 'WebSocket connection refused!';
                     } else {
-                        if (result.returnValue === 1) {
+                        if (result.returnValue === 1 && result.recordset[0].roleName === 'teacher') {
+                            console.log(result);
                             wsServer.handleUpgrade(request, socket, head, socket => {
                                 wsServer.emit('connection', socket, request);
                             });

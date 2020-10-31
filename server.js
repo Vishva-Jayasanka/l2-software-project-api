@@ -10,8 +10,11 @@ const fileUpload = require('express-fileupload');
 const _ = require('lodash');
 
 const PORT = process.env.PORT || 3000;
+
 const api = require('./routes/api');
 const admin = require('./routes/admin');
+const teacher = require('./routes/teacher');
+
 const app = express();
 
 app.use(fileUpload({
@@ -38,6 +41,7 @@ app.use(morgan('dev'));
 
 app.use('/api', api);
 app.use('/admin', admin);
+app.use('/teacher', teacher);
 
 app.get('/', function (request, response) {
     response.writeHead(200, {'Content-Type': 'text/html'});

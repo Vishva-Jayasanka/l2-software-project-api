@@ -7,7 +7,7 @@ module.exports = {
         socket.on('message', message => {
             wsServer.clients.forEach(client => {
                 if (client !== ws && client.readyState === ws.OPEN) {
-                    client.send(`You sent -> ${message}`);
+                    client.send(message);
                 }
             });
         });
