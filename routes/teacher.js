@@ -43,4 +43,23 @@ router.post('/get-assignments', verifyToken, verifyTeacher, async (request, resp
 
 });
 
+router.post('/get-students', verifyToken, verifyTeacher, async (request, response) => {
+    try {
+        const pool = await poolPromise;
+        pool.request()
+            .query('SELECT U.username, S.nameWithInitials FROM Users U, Student S WHERE U.role = 2 AND U.username = S.studentID', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        students: result.recordset
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+});
+
 module.exports = router;
