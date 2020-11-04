@@ -580,4 +580,61 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
 
 });
 
-module.exports = router;
+//--upload paymnets
+router.post('/upload-payments', verifyToken, verifyAdmin, async (request, response) => {
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), data.depositor.registrationNumber)
+            .input('bank', sql.VarChar(50), data.deposit.bankName)
+            .input('slipNumber', sql.Int, data.deposit.slipNumber)
+            .input('amountPaid', sql.Money, data.deposit.totalPaid)
+            .input('paymentDate', sql.Date, data.deposit.paymentDate)
+            .execute('uploadPayments', function (error, result) {
+                if (error) {
+                    console.error(error);
+                    response.send(Errors.serverError);
+                } else {
+                    console.log(result);
+                    response.send({
+                        status: true,
+                        message: 'Request received successfully'
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+
+//--view payments
+router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response) => {
+    const studentID = request.body.studentID;
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Int, studentID)
+            .execute('viewPayments', (error, result) => {
+                if (error) {
+                    response.status(200).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        attendance: result.recordset
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+
+
