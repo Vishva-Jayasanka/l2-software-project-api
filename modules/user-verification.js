@@ -44,5 +44,36 @@ module.exports = {
         } catch (exception) {
             return response.status(401).send(Errors.serverError);
         }
+    },
+    verifyWebSocketConnection: async function (request, socket, head, wsServer) {
+        if (!request.headers['sec-websocket-protocol']) {
+            return 'WebSocket connection refused!';
+        }
+        const token = request.headers['sec-websocket-protocol'];
+        const payload = jwt.verify(token, "secret_key");
+        if (!payload) {
+            return 'WebSocket connection refused!';
+        } else {
+            const pool = await poolPromise;
+            const result = await pool.request()
+                .input('username', sql.Char(7), payload.subject)
+                .execute('checkValidity', (error, result) => {
+                    if (error) {
+                        return 'WebSocket connection refused!';
+                    } else {
+                        if (result.returnValue === 1 && result.recordset[0].roleName === 'teacher') {
+                            console.log(result);
+                            wsServer.handleUpgrade(request, socket, head, socket => {
+                                wsServer.emit('connection', socket, request);
+                            });
+                            return 'WebSocket connection refused!';
+                        } else {
+                            return 'WebSocket connection refused!';
+                        }
+                    }
+                });
+        }
+
     }
 }
+

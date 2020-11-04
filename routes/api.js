@@ -162,7 +162,6 @@ router.post('/get-modules', verifyToken, async (request, response) => {
                     console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
-                    console.log(result.recordsets[3]);
                     response.status(200).send({
                         status: true,
                         modules: result.recordsets[0],
@@ -224,7 +223,6 @@ router.post('/get-lecture-hours', verifyToken, function (request, response) {
     LectureHour.find({}, {_id: 0, completedLectures: 0, __v: 0}, (error, lectureHours) => {
         if (error) {
             response.status(500).send(Errors.serverError);
-            console.log('a');
         } else {
             Module.find({}, {_id: 0, teachers: 0, credits: 0, description: 0, __v: 0}, (error, modules) => {
                 if (error) {
@@ -285,7 +283,6 @@ router.post('/upload-profile-picture', verifyToken, async (request, response) =>
             });
         }
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -309,6 +306,58 @@ router.post('/get-profile-picture', verifyToken, async (request, response) => {
         } else {
             response.status(500).send(Errors.serverError);
         }
+    }
+
+});
+
+router.post('/get-timetable', verifyToken, async (request, response) => {
+
+    const studentID = request.username;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('getTimetable', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        times: result.recordset
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-user-details', verifyToken, async (request, response) => {
+
+    const username = request.username;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('username', sql.Char(7), username)
+            .execute('getUserDetails', (error, result) => {
+               if (error) {
+                   response.status(500).send(Errors.serverError);
+               } else {
+                   response.status(200).send({
+                       status: true,
+                       details: result.recordsets
+                   });
+               }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
     }
 
 });

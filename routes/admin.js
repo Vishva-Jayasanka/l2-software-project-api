@@ -101,6 +101,7 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
             .input('teachers', teachers)
             .execute('addModule', (error, result) => {
                 if (error) {
+                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     if (result.returnValue === 0) {
@@ -109,11 +110,13 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
                             message: 'Module saved successfully'
                         });
                     } else {
+                        console.log(error);
                         response.status(500).send(Errors.serverError);
                     }
                 }
             });
     } catch (error) {
+        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
