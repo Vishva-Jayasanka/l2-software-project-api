@@ -7,7 +7,7 @@ const verifyToken = require('../modules/user-verification').VerifyToken;
 const {poolPromise} = require('../modules/sql-connection');
 
 function verifyTeacher(request, response, next) {
-    if (request.role === 'teacher') {
+    if (request.role === 'teacher' || request.role === 'admin') {
         next();
     } else {
         response.status(401).send(Errors.unauthorizedRequest);

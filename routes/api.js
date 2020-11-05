@@ -58,7 +58,7 @@ router.post('/login', async (request, response) => {
                 } else {
                     if (result.returnValue === 1) {
                         let user = result.recordset[0];
-                        user.token = jwt.sign({subject: user.username}, 'secret_key');
+                        user.token = jwt.sign({subject: user.username, role: user.roleName}, 'secret_key');
                         response.status(200).send(user);
                     } else {
                         response.status(401).send({
@@ -356,6 +356,57 @@ router.post('/get-user-details', verifyToken, async (request, response) => {
                }
             });
 
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-notifications', verifyToken, async (request,response) => {
+    const username = request.username;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('username', sql.Char(7), username)
+            .execute('getNotifications', (error, result) => {
+                if (error || result.returnValue === -1) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        notifications: result.recordset
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/update-notification-status', verifyToken, async (request, response) => {
+    const received = request.body.received;
+    const receiverID = request.username;
+    try {
+        const notifications = new sql.Table('NOTIFICATIONS')
+        notifications.columns.add('notificationID', sql.Int)
+        for (let notificationID of received) {
+            notifications.rows.add(notificationID)
+        }
+        const pool = await poolPromise;
+        await pool.request()
+            .input('receiverID', sql.Char(7), receiverID)
+            .input('notifications', notifications)
+            .execute('updateNotificationStatus', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        message: 'Notification status updated successfully'
+                    });
+                }
+            });
     } catch (error) {
         response.status(500).send(Errors.serverError);
     }

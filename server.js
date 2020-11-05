@@ -50,7 +50,7 @@ app.get('/', function (request, response) {
 });
 
 const wsServer = new ws.Server({server: app});
-wsServer.on('connection', socket => {
+wsServer.on('connection', socket=> {
     onConnection(socket, wsServer);
 });
 

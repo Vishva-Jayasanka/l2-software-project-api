@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const ObjectID = require('mongodb').ObjectID;
 const sql = require('mssql');
 
 const Errors = require('../errors/errors');
@@ -55,18 +54,17 @@ module.exports = {
             return 'WebSocket connection refused!';
         } else {
             const pool = await poolPromise;
-            const result = await pool.request()
+            await pool.request()
                 .input('username', sql.Char(7), payload.subject)
                 .execute('checkValidity', (error, result) => {
                     if (error) {
                         return 'WebSocket connection refused!';
                     } else {
-                        if (result.returnValue === 1 && result.recordset[0].roleName === 'teacher') {
-                            console.log(result);
+                        if (result.returnValue === 1) {
                             wsServer.handleUpgrade(request, socket, head, socket => {
+                                socket.details = result.recordset[0];
                                 wsServer.emit('connection', socket, request);
                             });
-                            return 'WebSocket connection refused!';
                         } else {
                             return 'WebSocket connection refused!';
                         }
