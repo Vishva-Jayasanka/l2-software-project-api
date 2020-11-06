@@ -167,7 +167,7 @@ router.post('/get-modules', verifyToken, async (request, response) => {
                         modules: result.recordsets[0],
                         teachers: result.recordsets[1],
                         lectureHours: result.recordsets[2],
-                        course: (result.recordsets[3][0]) ? result.recordsets[3][0].courseName : ''
+                        course: (result.recordsets[3][0] || null) ? result.recordsets[3][0].courseName : ''
                     });
                 }
             });

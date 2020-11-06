@@ -5,7 +5,7 @@
       <driver-ref>sqlserver.ms</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
-      <jdbc-url>jdbc:sqlserver://LAPTOP-T4KK4VD3;database=lmsdb</jdbc-url>
+      <jdbc-url>jdbc:sqlserver://localhost\MSSQLSERVER;database=lmsdb</jdbc-url>
     </data-source>
     <data-source source="LOCAL" name="Asure" uuid="db003603-540d-4e39-b408-b8383ec4c478">
       <driver-ref>azure.ms</driver-ref>
