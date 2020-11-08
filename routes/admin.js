@@ -563,10 +563,11 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    if (result.recordset[0].name) {
+                    if (result.returnValue === 0) {
                         response.status(200).send({
                             status: true,
-                            name: result.recordset[0].name
+                            name: result.recordset[0].name,
+                            course: result.recordset[0].course
                         });
                     } else {
                         response.status(200).send({
@@ -583,7 +584,7 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
 
 });
 
-//--upload paymnets
+// upload payments
 router.post('/upload-payments', verifyToken, verifyAdmin, async (request, response) => {
 
     try {
@@ -615,7 +616,7 @@ router.post('/upload-payments', verifyToken, verifyAdmin, async (request, respon
 });
 
 
-//--view payments
+// view payments
 router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response) => {
     const studentID = request.body.studentID;
 
