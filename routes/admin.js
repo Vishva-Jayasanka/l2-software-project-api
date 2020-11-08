@@ -639,5 +639,4 @@ router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response)
 
 });
 
-
-
+module.exports = router;

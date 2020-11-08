@@ -13,8 +13,8 @@ const sql = require('mssql');
 const config = {
     server: 'localhost',
     instance: 'MSSQLSERVER',
-    user: 'onali',
-    password: '123456',
+    user: 'jayasanka',
+    password: 'jayasanka',
     database: 'lmsdb',
     options: {
         enableArithAbort: true,

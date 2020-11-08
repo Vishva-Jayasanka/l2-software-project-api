@@ -1,4 +1,3 @@
-const express = require('express');
 const sql = require('mssql');
 const ws = require('ws');
 const {poolPromise} = require("../modules/sql-connection");
