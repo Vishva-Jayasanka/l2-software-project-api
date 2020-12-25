@@ -7,7 +7,7 @@ const verifyToken = require('../modules/user-verification').VerifyToken;
 const {poolPromise} = require('../modules/sql-connection');
 
 function verifyAdmin(request, response, next) {
-    if (request.role === 'admin') {
+    if (request.role === 1) {
         next();
     } else {
         return response.status(401).send(Errors.unauthorizedRequest);
@@ -17,7 +17,7 @@ function verifyAdmin(request, response, next) {
 router.post('/check-module', verifyToken, verifyAdmin, async (request, response) => {
     try {
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('moduleCode', sql.Char(6), request.body.moduleCode)
             .execute('checkModule', (error, result) => {
                 if (error) {
@@ -77,8 +77,8 @@ router.post('/get-module-details', verifyToken, verifyAdmin, async (request, res
 router.post('/get-teachers', verifyToken, verifyAdmin, async (request, response) => {
     try {
         const pool = await poolPromise;
-        const result = await pool.request()
-            .query('SELECT username, firstName, lastName FROM Users WHERE role=1', (error, result) => {
+        await pool.request()
+            .query('SELECT username, firstName, lastName FROM Users WHERE role=2', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
@@ -96,7 +96,6 @@ router.post('/get-teachers', verifyToken, verifyAdmin, async (request, response)
 router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, response) => {
 
     const info = request.body.moduleDetails;
-    console.log(request.body);
 
     const lectureHours = new sql.Table('LECTURE_HOUR');
     lectureHours.columns.add('lectureHourID', sql.Int);
@@ -134,7 +133,6 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
             .input('teachers', teachers)
             .execute('addModule', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     if (result.returnValue === 0) {
@@ -143,13 +141,11 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
                             message: 'Module saved successfully'
                         });
                     } else {
-                        console.log(error);
                         response.status(500).send(Errors.serverError);
                     }
                 }
             });
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -634,7 +630,6 @@ router.post('/upload-payments', verifyToken, verifyAdmin, async (request, respon
                     console.error(error);
                     response.send(Errors.serverError);
                 } else {
-                    console.log(result);
                     response.send({
                         status: true,
                         message: 'Request received successfully'
@@ -676,7 +671,6 @@ router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response)
 // get students registered in particular semester
 router.post('/get-students-of-batch', verifyToken, verifyAdmin, async (request, response) => {
     const batch = request.body.batch;
-    console.log(batch);
 
     response.status(200).send({
         status: true,
@@ -692,7 +686,6 @@ router.post('/upload-request', verifyToken, verifyAdmin, async (request, respons
     try {
         const pool = await poolPromise;
     } catch (exception) {
-        console.log(exception);
         response.status(200).send(Errors.serverError);
     }
 
