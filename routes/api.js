@@ -58,6 +58,11 @@ router.post('/login', async (request, response) => {
                 } else {
                     if (result.returnValue === 1) {
                         let user = result.recordset[0];
+
+                        // Verification not configured in the database------
+                        user.verified = true;
+                        // -------------------------------------------------
+
                         user.token = jwt.sign({subject: user.username, role: user.roleName}, 'secret_key');
                         response.status(200).send(user);
                     } else {
@@ -131,43 +136,25 @@ router.post('/send-verification-email', verifyToken, (request, response) => {
     })
 });
 
-router.post('/check-username', (request, response) => {
-    User.findOne({username: request.body.username}, (error, user) => {
-        if (error) {
-            response.status(500).send(Errors.unauthorizedRequest);
-        } else {
-            if (!user) {
-                response.status(401).send({
-                    status: false,
-                    message: 'User not found'
-                })
-            } else {
-                response.status(200).send({
-                    status: true,
-                    message: 'User found'
-                })
-            }
-        }
-    });
-});
-
 router.post('/get-modules', verifyToken, async (request, response) => {
     const username = request.username;
     try {
         const pool = await poolPromise;
         const result = await pool.request()
-            .input('studentID', sql.Char(7), username)
+            .input('username', sql.Char(7), username)
+            .input('role', sql.Int, request.role)
             .execute('getModules', (error, result) => {
                 if (error) {
-                    console.error(error);
+                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
+                    console.log(result.recordsets);
                     response.status(200).send({
                         status: true,
                         modules: result.recordsets[0],
                         teachers: result.recordsets[1],
                         lectureHours: result.recordsets[2],
-                        course: (result.recordsets[3][0] || null) ? result.recordsets[3][0].courseName : ''
+                        course: (request.role === 3) ? result.recordsets[3][0].courseName : ''
                     });
                 }
             });
@@ -346,14 +333,14 @@ router.post('/get-user-details', verifyToken, async (request, response) => {
         const result = await pool.request()
             .input('username', sql.Char(7), username)
             .execute('getUserDetails', (error, result) => {
-               if (error) {
-                   response.status(500).send(Errors.serverError);
-               } else {
-                   response.status(200).send({
-                       status: true,
-                       details: result.recordsets
-                   });
-               }
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        details: result.recordsets
+                    });
+                }
             });
 
     } catch (error) {
@@ -362,7 +349,7 @@ router.post('/get-user-details', verifyToken, async (request, response) => {
 
 });
 
-router.post('/get-notifications', verifyToken, async (request,response) => {
+router.post('/get-notifications', verifyToken, async (request, response) => {
     const username = request.username;
     try {
         const pool = await poolPromise;

@@ -1,21 +1,11 @@
 const sql = require('mssql');
-// const config = {
-//     server: 'vishwa-jayasanka.database.windows.net',
-//     instance: 'MSSQLSERVER',
-//     user: 'vishwa',
-//     password: 'Jayasanka1235',
-//     database: 'lmsdb',
-//     options: {
-//         encrypt: true,
-//     }
-// }
 
 const config = {
     server: 'localhost',
     instance: 'MSSQLSERVER',
     user: 'jayasanka',
     password: 'jayasanka',
-    database: 'lmsdb',
+    database: 'imsdb',
     options: {
         enableArithAbort: true,
         encrypt: false

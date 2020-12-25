@@ -42,6 +42,38 @@ router.post('/check-module', verifyToken, verifyAdmin, async (request, response)
     }
 });
 
+router.post('/get-module-details', verifyToken, verifyAdmin, async (request, response) => {
+    const moduleCode = request.body.moduleCode;
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('moduleCode', sql.Char(6), moduleCode)
+            .execute('getModuleDetails', (error, result) => {
+                if (error) {
+                   response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.returnValue === 0) {
+                        response.status(200).send({
+                            status: true,
+                            moduleDetails: result.recordsets[0][0],
+                            teachers: result.recordsets[1],
+                            lectureHours: result.recordsets[2]
+                        });
+                    } else {
+                        response.status(401).send({
+                            status: false,
+                            message: 'Module not found'
+                        });
+                    }
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
 router.post('/get-teachers', verifyToken, verifyAdmin, async (request, response) => {
     try {
         const pool = await poolPromise;
@@ -64,6 +96,7 @@ router.post('/get-teachers', verifyToken, verifyAdmin, async (request, response)
 router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, response) => {
 
     const info = request.body.moduleDetails;
+    console.log(request.body);
 
     const lectureHours = new sql.Table('LECTURE_HOUR');
     lectureHours.columns.add('lectureHourID', sql.Int);
@@ -77,7 +110,7 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
         lectureHours.rows.add(0, lectureHour.type, parseInt(lectureHour.day), lectureHour.lectureHall, lectureHour.startingTime, lectureHour.endingTime);
     }
     for (let lectureHour of info.lectureHours) {
-        lectureHours.rows.add(lectureHour.lectureHourID, lectureHour.type, parseInt(lectureHour.day), lectureHour.lectureHall, lectureHour.startingTime, lectureHour.endingTime);
+        lectureHours.rows.add(lectureHour.lectureHourID, lectureHour.type, parseInt(lectureHour.day, 10), lectureHour.lectureHall, lectureHour.startingTime, lectureHour.endingTime);
     }
 
     const teachers = new sql.Table('TEACHER');
@@ -94,7 +127,7 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
             .input('moduleName', sql.VarChar(50), info.moduleName)
             .input('year', sql.Int, info.batch)
             .input('description', sql.VarChar(50), info.description)
-            .input('credits', sql.Int, info.credits)
+            .input('credits', sql.Real, info.credits)
             .input('semester', sql.Int, info.semester)
             .input('disabled', sql.Bit, info.disabled)
             .input('lectureHours', lectureHours)
@@ -636,6 +669,31 @@ router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response)
             });
     } catch (error) {
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+// get students registered in particular semester
+router.post('/get-students-of-batch', verifyToken, verifyAdmin, async (request, response) => {
+    const batch = request.body.batch;
+    console.log(batch);
+
+    response.status(200).send({
+        status: true,
+        message: 'Request received successfully...!'
+    });
+});
+
+// Upload request form set by students
+router.post('/upload-request', verifyToken, verifyAdmin, async (request, response) => {
+
+    const req = request.body;
+
+    try {
+        const pool = await poolPromise;
+    } catch (exception) {
+        console.log(exception);
+        response.status(200).send(Errors.serverError);
     }
 
 });

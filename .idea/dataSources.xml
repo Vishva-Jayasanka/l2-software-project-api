@@ -13,5 +13,11 @@
       <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
       <jdbc-url>jdbc:sqlserver://vishwa-jayasanka.database.windows.net;database=lmsdb</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="imsdb" uuid="167f687a-d68c-4418-8321-95f2cfb75a7b">
+      <driver-ref>sqlserver.ms</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
+      <jdbc-url>jdbc:sqlserver://localhost\MSSQLSERVER;database=imsdb</jdbc-url>
+    </data-source>
   </component>
 </project>
