@@ -51,7 +51,7 @@ router.post('/get-module-details', verifyToken, verifyAdmin, async (request, res
             .input('moduleCode', sql.Char(6), moduleCode)
             .execute('getModuleDetails', (error, result) => {
                 if (error) {
-                   response.status(500).send(Errors.serverError);
+                    response.status(500).send(Errors.serverError);
                 } else {
                     if (result.returnValue === 0) {
                         response.status(200).send({
@@ -121,14 +121,10 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
     try {
         const pool = await poolPromise;
         const result = await pool.request()
-            .input('adminID', sql.Char(7), request.username)
             .input('moduleCode', sql.Char(6), info.moduleCode)
             .input('moduleName', sql.VarChar(50), info.moduleName)
-            .input('year', sql.Int, info.batch)
             .input('description', sql.VarChar(50), info.description)
             .input('credits', sql.Real, info.credits)
-            .input('semester', sql.Int, info.semester)
-            .input('disabled', sql.Bit, info.disabled)
             .input('lectureHours', lectureHours)
             .input('teachers', teachers)
             .execute('addModule', (error, result) => {
@@ -521,7 +517,7 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                     response.status(500).send(Errors.serverError);
                 } else {
 
-                    const maxUsername = result.recordset[0].maxUsername === null ? (year + '4000A').toString() : result.recordset[0].maxUsername ;
+                    const maxUsername = result.recordset[0].maxUsername === null ? (year + '4000A').toString() : result.recordset[0].maxUsername;
                     const studentID = (parseInt(maxUsername.substring(0, 6)) + 1).toString() + String.fromCharCode(((maxUsername.charCodeAt(6) - 60) % 26) + 65)
                     const name = data.name.nameWithInitials.split(' ');
 
@@ -584,9 +580,8 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
     const studentID = request.body.studentID;
 
     try {
-
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('studentID', sql.Char(7), studentID)
             .execute('checkStudentID', (error, result) => {
                 if (error) {
@@ -596,7 +591,8 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
                         response.status(200).send({
                             status: true,
                             name: result.recordset[0].name,
-                            course: result.recordset[0].course
+                            course: result.recordset[0].course,
+                            academicYear: result.recordset[0].academicYear
                         });
                     } else {
                         response.status(200).send({
@@ -689,6 +685,38 @@ router.post('/upload-request', verifyToken, verifyAdmin, async (request, respons
         response.status(200).send(Errors.serverError);
     }
 
+});
+
+router.post('/enroll-student', verifyToken, verifyAdmin, async (request, response) => {
+    const enrollmentForm = request.body;
+
+    try {
+        const modules = new sql.Table('REGISTRATION_MODULE');
+        modules.columns.add('moduleCode', sql.Char(6))
+
+        for (let module of enrollmentForm.modules) {
+            modules.rows.add(module.moduleCode);
+        }
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), enrollmentForm.studentID)
+            .input('semester', sql.Int, enrollmentForm.semester)
+            .input('modules', modules)
+            .execute('enrollStudent', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    console.log(result)
+                    response.status(200).send({
+                        status: true,
+                        message: 'Student enrolled successfully.'
+                    });
+                }
+            })
+    } catch (exception) {
+        response.status(500).send(Errors.serverError);
+    }
 });
 
 module.exports = router;

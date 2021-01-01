@@ -32,7 +32,6 @@ mongoose.connect(db, {
 
 
 function generateOTP(user, callback) {
-    console.log(user.email);
     const OTP = emailVerification.getRandomInt();
     User.update({_id: ObjectID(user._id)}, {
         email: user.email,
@@ -145,10 +144,8 @@ router.post('/get-modules', verifyToken, async (request, response) => {
             .input('role', sql.Int, request.role)
             .execute('getModules', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
-                    console.log(result.recordsets);
                     response.status(200).send({
                         status: true,
                         modules: result.recordsets[0],
@@ -231,7 +228,7 @@ router.post('/get-results', verifyToken, async (request, response) => {
 
     try {
         const pool = await poolPromise;
-        const result = pool.request()
+        pool.request()
             .input('studentID', sql.Char(7), studentID)
             .execute('getResults', (error, result) => {
                 if (error) {
@@ -239,8 +236,7 @@ router.post('/get-results', verifyToken, async (request, response) => {
                 } else {
                     response.status(200).send({
                         status: true,
-                        results: result.recordsets[1],
-                        modules: result.recordsets[0]
+                        results: result.recordset
                     });
                 }
             });
