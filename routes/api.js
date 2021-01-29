@@ -195,6 +195,7 @@ router.post('/get-detailed-attendance', verifyToken, async (request, response) =
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
+                    console.log(result.recordset);
                     response.status(200).send(result.recordset);
                 }
             });
