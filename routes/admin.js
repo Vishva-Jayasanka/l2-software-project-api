@@ -219,7 +219,7 @@ router.post('/get-sessions', verifyToken, verifyAdmin, async (request, response)
         const result = await pool.request()
             .input('lectureHourID', sql.Int, data.lectureHourID)
             .input('batch', sql.Int, data.batch)
-            .query('SELECT sessionID, dateHeld FROM Session WHERE lectureHourID = @lectureHOurID AND batch = @batch', (error, result) => {
+            .query('SELECT sessionID, date FROM Session WHERE lectureHourID = @lectureHOurID AND batch = @batch', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {

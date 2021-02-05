@@ -296,14 +296,13 @@ router.post('/get-profile-picture', verifyToken, async (request, response) => {
 
 router.post('/get-timetable', verifyToken, async (request, response) => {
 
-    const studentID = request.username;
-
     try {
 
         const pool = await poolPromise;
         const result = await pool.request()
-            .input('studentID', sql.Char(7), studentID)
-            .execute('getTimetable', (error, result) => {
+            .input('username', sql.Char(7), request.username)
+            .input('role', sql.Int, request.role)
+            .execute('getTimetables', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {

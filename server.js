@@ -18,7 +18,7 @@ const teacher = require('./routes/teacher');
 const app = express();
 
 app.use(fileUpload({
-    createParantPath: true
+    createParentPath: true
 }));
 app.use(express.static('profile-pictures'));
 
@@ -31,7 +31,7 @@ app.use(function (request, response, next) {
     next();
 });
 
-app.use(bodyParser.json({limit: '2mb'}))
+app.use(bodyParser.json({limit: '2mb'}));
 
 app.use(bodyParser.urlencoded({
     extended: true
