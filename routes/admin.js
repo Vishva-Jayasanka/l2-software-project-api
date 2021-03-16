@@ -258,6 +258,7 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
             .execute('addAttendance', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
+                    console.error(error);
                 } else {
                     response.status(200).send({
                         status: true,
@@ -266,6 +267,7 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
                 }
             });
     } catch (error) {
+        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -361,28 +363,25 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
 
     try {
 
-        const results = new sql.Table('MARKS');
-        results.columns.add('studentID', sql.Char(7));
-        results.columns.add('mark', sql.Int);
+        const marks = new sql.Table('MARK');
+        marks.columns.add('studentID', sql.Char(7));
+        marks.columns.add('mark', sql.Int);
 
         for (let record of data.results) {
             if (!record.status) {
-                results.rows.add(record.index, record.mark);
+                marks.rows.add(record.index, record.mark);
             }
         }
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('moduleCode', sql.Char(6), data.moduleCode)
-            .input('batch', sql.Int, data.batch)
-            .input('examID', sql.Int, data.examID)
-            .input('type', sql.VarChar(15), data.type)
-            .input('dateHeld', sql.Date, data.dateHeld)
-            .input('allocation', sql.Int, data.allocation)
-            .input('hideMarks', sql.Bit, data.hideMarks)
-            .input('results', results)
+            .input('date', sql.Date, data.dateHeld)
+            .input('academicYear', sql.Int, data.academicYear)
+            .input('marks', marks)
             .execute('uploadMarks', (error, result) => {
                 if (error) {
+                    console.error(error);
                     if (error.number === 2627) {
                         response.status(400).send({
                             status: false,
@@ -397,15 +396,15 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
                         response.status(500).send(Errors.serverError);
                     }
                 } else {
-                    if (result.recordset && result.recordset[0].hasOwnProperty('totalAllocation')) {
-                        response.status(400).send({
-                            status: false,
-                            message: `Total allocation exceeds 100. Available allocation is ${Math.abs(result.recordset[0].totalAllocation - 100 - data.allocation)}`,
-                        });
-                    } else if (result.recordset && result.recordset[0].hasOwnProperty('invalidStudentID')) {
+                    if (result.recordset && result.recordset[0].hasOwnProperty('invalidStudentID')) {
                         response.status(400).send({
                             status: false,
                             message: result.recordset[0].invalidStudentID
+                        });
+                    } else if (result.recordset && result.recordset[0].hasOwnProperty('duplicateEntry')) {
+                        response.status(400).send({
+                            status: false,
+                            message: result.recordset[0].duplicateEntry
                         });
                     } else {
                         response.status(200).send({
@@ -416,35 +415,40 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
                 }
             });
     } catch (error) {
+        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 
 });
 
 router.post('/get-module-results', async (request, response) => {
-    const examID = request.body.examID;
 
     try {
         const pool = await poolPromise;
-        const result = await pool.request()
-            .input('examID', sql.Int, examID)
-            .execute('getResultOfExam', (error, result) => {
+        await pool.request()
+            .input('moduleCode', sql.Char(7), request.body.moduleCode)
+            .input('academicYear', sql.Int, request.body.academicYear)
+            .execute('getResultsOfExam', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
                         status: true,
-                        results: result.recordset
+                        examID: result.recordset[0].examID,
+                        dateHeld: result.recordset[0].dateHeld,
+                        results: result.recordsets[1]
                     });
                 }
             });
     } catch (error) {
+        console.error(result);
         response.status(200).send(Errors.serverError);
     }
 
 });
 
 router.post('/edit-results', verifyToken, verifyAdmin, async (request, response) => {
+
     const data = request.body.results;
 
     try {
@@ -457,15 +461,13 @@ router.post('/edit-results', verifyToken, verifyAdmin, async (request, response)
         }
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('examID', sql.Int, data.examID)
-            .input('type', sql.VarChar(25), data.type)
             .input('dateHeld', sql.Date, data.dateHeld)
-            .input('allocation', sql.Int, data.allocation)
-            .input('hideMarks', sql.Bit, data.hideMarks)
             .input('results', results)
             .execute('editResults', (error, result) => {
                 if (error) {
+                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -475,6 +477,7 @@ router.post('/edit-results', verifyToken, verifyAdmin, async (request, response)
                 }
             });
     } catch (error) {
+        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 });
@@ -484,16 +487,21 @@ router.post('/delete-exam', verifyToken, verifyAdmin, async (request, response) 
 
     try {
         const pool = await poolPromise;
-        const result = pool.request()
-            .input('examID', sql.Int, examID)
+        pool.request()
+            .input('moduleCode', sql.Char(6), request.body.moduleCode)
+            .input('academicYear', sql.Int, request.body.academicYear)
             .execute('deleteExam', (error, result) => {
                 if (error) {
                     response.status(200).send(Errors.serverError);
                 } else {
-                    response.status(200).send({
-                        status: true,
-                        message: 'Exam deleted successfully'
-                    });
+                    if (result.returnValue !== -1) {
+                        response.status(200).send({
+                            status: true,
+                            message: 'Exam deleted successfully'
+                        });
+                    } else {
+                        response.status(500).send(Errors.serverError);
+                    }
                 }
             });
     } catch (error) {
@@ -687,6 +695,7 @@ router.post('/upload-request', verifyToken, verifyAdmin, async (request, respons
 
 });
 
+// Enroll students to a semester
 router.post('/enroll-student', verifyToken, verifyAdmin, async (request, response) => {
     const enrollmentForm = request.body;
 
@@ -707,7 +716,6 @@ router.post('/enroll-student', verifyToken, verifyAdmin, async (request, respons
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    console.log(result)
                     response.status(200).send({
                         status: true,
                         message: 'Student enrolled successfully.'
@@ -717,6 +725,39 @@ router.post('/enroll-student', verifyToken, verifyAdmin, async (request, respons
     } catch (exception) {
         response.status(500).send(Errors.serverError);
     }
+});
+
+// Check if module have results uploaded previously
+router.post('/check-if-results-uploaded', verifyToken, verifyAdmin, async (request, response) => {
+
+    try {
+
+        const pool = await poolPromise
+        await pool.request()
+            .input('moduleCode', sql.Char(6), request.body.moduleCode)
+            .input('academicYear', sql.Int, request.body.academicYear)
+            .execute('checkIfResultsUploaded', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.returnValue === 1) {
+                        response.status(200).send({
+                            status: true,
+                            message: 'No results found'
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: false,
+                            message: 'Previously uploaded results are found'
+                        });
+                    }
+                }
+            });
+
+    } catch (Exception) {
+        response.status(500).send(Errors.serverError);
+    }
+
 });
 
 module.exports = router;

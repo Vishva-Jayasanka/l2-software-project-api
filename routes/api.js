@@ -45,7 +45,6 @@ function generateOTP(user, callback) {
 
 router.post('/login', async (request, response) => {
     let userData = request.body;
-
     try {
         const pool = await poolPromise;
         const result = await pool.request()
@@ -57,11 +56,7 @@ router.post('/login', async (request, response) => {
                 } else {
                     if (result.returnValue === 1) {
                         let user = result.recordset[0];
-
-                        // Verification not configured in the database------
                         user.verified = true;
-                        // -------------------------------------------------
-
                         user.token = jwt.sign({subject: user.username, role: user.roleName}, 'secret_key');
                         response.status(200).send(user);
                     } else {
@@ -153,6 +148,13 @@ router.post('/get-modules', verifyToken, async (request, response) => {
                         lectureHours: result.recordsets[2],
                         course: (request.role === 3) ? result.recordsets[3][0].courseName : ''
                     });
+                    console.log({
+                        status: true,
+                        modules: result.recordsets[0],
+                        teachers: result.recordsets[1],
+                        lectureHours: result.recordsets[2],
+                        course: (request.role === 3) ? result.recordsets[3][0].courseName : ''
+                    });
                 }
             });
     } catch (error) {
@@ -195,7 +197,6 @@ router.post('/get-detailed-attendance', verifyToken, async (request, response) =
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    console.log(result.recordset);
                     response.status(200).send(result.recordset);
                 }
             });
