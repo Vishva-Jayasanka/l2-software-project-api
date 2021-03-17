@@ -518,7 +518,8 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
 
     try {
 
-        const year = (new Date().getFullYear()).toString().substring(2, 4);
+        console.log(data.academicYear);
+        const year = (data.academicYear.toString().substring(2, 4));
 
         const pool = await poolPromise;
         const result0 = await pool.request()
@@ -544,6 +545,7 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                     const result1 = pool.request()
                         .input('studentID', sql.Char(7), studentID)
                         .input('courseID', sql.Int, data.courseName)
+                        .input('academicYear', sql.Int, data.academicYear)
                         .input('fullName', sql.VarChar(100), data.name.fullName)
                         .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
                         .input('firstName', sql.VarChar(20), name[0])
@@ -562,12 +564,10 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                         .input('designation', sql.VarChar(50), data.employment.designation)
                         .input('employer', sql.VarChar(50), data.employment.employer)
                         .input('company', sql.VarChar(50), data.employment.company)
-                        .input('registrationFees', sql.Money, data.registration.registrationFees)
-                        .input('dateOfPayment', sql.Date, data.registration.dateOfPayment)
-                        .input('feesPaid', sql.Bit, data.registration.registrationFeesPaid)
                         .input('educationQualifications', qualifications)
                         .execute('registerStudent', (error, result) => {
                             if (error) {
+                                console.log(error);
                                 response.status(500).send(Errors.serverError);
                             } else {
                                 response.status(200).send({
@@ -580,6 +580,7 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
             });
 
     } catch (error) {
+        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
