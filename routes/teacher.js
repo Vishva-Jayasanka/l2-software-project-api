@@ -7,7 +7,7 @@ const verifyToken = require('../modules/user-verification').VerifyToken;
 const {poolPromise} = require('../modules/sql-connection');
 
 function verifyTeacher(request, response, next) {
-    if (request.role === 'teacher' || request.role === 'admin') {
+    if (request.role === 1 || request.role === 2) {
         next();
     } else {
         response.status(401).send(Errors.unauthorizedRequest);
@@ -47,7 +47,7 @@ router.post('/get-students', verifyToken, verifyTeacher, async (request, respons
     try {
         const pool = await poolPromise;
         pool.request()
-            .query('SELECT U.username, S.nameWithInitials FROM Users U, Student S WHERE U.role = 2 AND U.username = S.studentID', (error, result) => {
+            .query('SELECT U.username, S.nameWithInitials FROM Users U, Student S WHERE U.role = 3 AND U.username = S.studentID', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {

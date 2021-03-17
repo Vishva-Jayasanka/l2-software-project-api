@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
 const ObjectID = require('mongodb').ObjectID;
 const sql = require('mssql');
 const fs = require('fs');
@@ -10,25 +9,11 @@ const fs = require('fs');
 const User = require('../models/user');
 const Module = require('../models/module');
 const LectureHour = require('../models/lecture-hour');
-const Result = require('../models/result');
-const Attendance = require('../models/attendance');
 const verifyToken = require('../modules/user-verification').VerifyToken;
 
 const Errors = require('../errors/errors');
 const emailVerification = require('../modules/email-verification');
-const db = 'mongodb://localhost:27017/lmsdb';
 const {poolPromise} = require('../modules/sql-connection');
-
-mongoose.connect(db, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}, error => {
-    if (error) {
-        console.log('Error: ' + error);
-    } else {
-        console.log('Successfully connected to the Mongodb Server!');
-    }
-});
 
 
 function generateOTP(user, callback) {
@@ -148,17 +133,11 @@ router.post('/get-modules', verifyToken, async (request, response) => {
                         lectureHours: result.recordsets[2],
                         course: (request.role === 3) ? result.recordsets[3][0].courseName : ''
                     });
-                    console.log({
-                        status: true,
-                        modules: result.recordsets[0],
-                        teachers: result.recordsets[1],
-                        lectureHours: result.recordsets[2],
-                        course: (request.role === 3) ? result.recordsets[3][0].courseName : ''
-                    });
+
                 }
             });
     } catch (error) {
-        console.error(error);
+        response.status(500).send(Errors.serverError);
     }
 });
 

@@ -5,10 +5,9 @@ const {poolPromise} = require("../modules/sql-connection");
 module.exports = {
     onConnection: function (socket, wsServer) {
         socket.on('message', async message => {
-            if (socket.details.roleName === 'admin' || socket.details.roleName === 'teacher') {
+            if (socket.details.roleID === 1 || socket.details.roleID === 2) {
                 try {
                     let msg = JSON.parse(message);
-                    console.log(msg.messageType);
                     if (msg.messageType === 'notification') {
                         msg = msg.messageBody;
                         msg.recipients.push(socket.details.username);
@@ -20,7 +19,7 @@ module.exports = {
                         }
 
                         const pool = await poolPromise;
-                        console.log(new Date(msg.timeSent).toISOString());
+                        console.log('Notification sent: ' + new Date(msg.timeSent).toISOString());
                         pool.request()
                             .input('sentBy', sql.Char(7), msg.username)
                             .input('subject', sql.VarChar(100), msg.subject)
@@ -30,6 +29,7 @@ module.exports = {
                             .execute('addNotification', (error, result) => {
 
                                 if (error || result.returnValue === -1) {
+                                    console.log(error);
                                     socket.send(JSON.stringify({
                                         status: false,
                                         message: 'Error sending the message'
@@ -83,7 +83,6 @@ module.exports = {
 }
 
 async function updateMessageStatus(notificationID, recipientID) {
-    console.log('in');
     try {
         const pool = await poolPromise;
         await pool.request()

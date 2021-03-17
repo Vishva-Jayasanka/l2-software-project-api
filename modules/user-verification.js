@@ -44,7 +44,7 @@ module.exports = {
             return response.status(401).send(Errors.serverError);
         }
     },
-    verifyWebSocketConnection: async function (request, socket, head, wsServer) {
+    verifyWebSocketConnection: async (request, socket, head, wsServer) => {
         if (!request.headers['sec-websocket-protocol']) {
             return 'WebSocket connection refused!';
         }
@@ -53,23 +53,27 @@ module.exports = {
         if (!payload) {
             return 'WebSocket connection refused!';
         } else {
-            const pool = await poolPromise;
-            await pool.request()
-                .input('username', sql.Char(7), payload.subject)
-                .execute('checkValidity', (error, result) => {
-                    if (error) {
-                        return 'WebSocket connection refused!';
-                    } else {
-                        if (result.returnValue === 1) {
-                            wsServer.handleUpgrade(request, socket, head, socket => {
-                                socket.details = result.recordset[0];
-                                wsServer.emit('connection', socket, request);
-                            });
-                        } else {
+            try {
+                const pool = await poolPromise;
+                await pool.request()
+                    .input('username', sql.Char(7), payload.subject)
+                    .execute('checkValidity', (error, result) => {
+                        if (error) {
                             return 'WebSocket connection refused!';
+                        } else {
+                            if (result.returnValue === 1) {
+                                wsServer.handleUpgrade(request, socket, head, socket => {
+                                    socket.details = result.recordset[0];
+                                    wsServer.emit('connection', socket, request);
+                                });
+                            } else {
+                                return 'WebSocket connection refused!';
+                            }
                         }
-                    }
-                });
+                    });
+            } catch (error) {
+                return 'Server error!'
+            }
         }
 
     }
