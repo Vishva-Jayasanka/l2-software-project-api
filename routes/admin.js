@@ -236,6 +236,7 @@ router.post('/get-sessions', verifyToken, verifyAdmin, async (request, response)
 
 router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, response) => {
     const data = request.body;
+    console.log(data);
 
     try {
 
@@ -255,7 +256,7 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
             .input('date', sql.Date, data.date)
             .input('time', sql.Char(5), data.time)
             .input('attendance', attendance)
-            .execute('addAttendance', (error, result) => {
+            .execute('uploadAttendance', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                     console.error(error);
@@ -283,7 +284,8 @@ router.post('/get-session-attendance', verifyToken, verifyAdmin, async (request,
             .input('sessionID', sql.Int, sessionID)
             .execute('getSessionAttendance', (error, result) => {
                 if (error) {
-                    response.status(200).send(Errors.serverError);
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
                         status: true,
