@@ -21,7 +21,7 @@ module.exports = {
             } else {
                 try {
                     const pool = await poolPromise;
-                    const result = await pool.request()
+                    await pool.request()
                         .input('username', sql.Char(7), payload.subject)
                         .execute('checkValidity', (error, result) => {
                             if (error) {
