@@ -1,15 +1,14 @@
 const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
-const moduleSchema = new Schema({
-    moduleCode: String,
-    moduleName: String,
+const paymentSchema = new Schema({
+    slipNo: String,
     description: String,
-    colorCode: String,
-    credits: Number,
-    semester: Number,
-    teachers: Array,
-    lectureHours: Array,
+    amount: Number,
+    paymentDate: Date,
+    bank: String,
+    confirmStatus: Number,
+    studentID: String
 });
 
-module.exports = mongoose.model('module', moduleSchema, 'module');
+module.exports = mongoose.model('payment', paymentSchema, 'payment');

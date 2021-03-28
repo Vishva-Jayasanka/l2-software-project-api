@@ -606,8 +606,6 @@ router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, r
     }
 });
 
-
-
 router.post('/check-student-id', verifyToken, verifyAdmin, async (request, response) => {
 
     const studentID = request.body.studentID;
@@ -642,18 +640,18 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
 
 });
 
-// upload payments
+// upload payments  --TODO--
 router.post('/upload-payments', verifyToken, verifyAdmin, async (request, response) => {
-
+    const data = request.body;
     try {
-
         const pool = await poolPromise;
         await pool.request()
             .input('studentID', sql.Char(7), data.depositor.registrationNumber)
             .input('bank', sql.VarChar(50), data.deposit.bankName)
-            .input('slipNumber', sql.Int, data.deposit.slipNumber)
-            .input('amountPaid', sql.Money, data.deposit.totalPaid)
+            .input('slipNo', sql.Int, data.deposit.slipNumber)
+            .input('amount', sql.Money, data.deposit.totalPaid)
             .input('paymentDate', sql.Date, data.deposit.paymentDate)
+            .input('confirmStatus', sql.Int, data.deposit.confirmStatus)
             .execute('uploadPayments', function (error, result) {
                 if (error) {
                     console.error(error);
@@ -672,8 +670,7 @@ router.post('/upload-payments', verifyToken, verifyAdmin, async (request, respon
 
 });
 
-
-// view payments
+// view payments of a student
 router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response) => {
     const studentID = request.body.studentID;
 
@@ -695,6 +692,43 @@ router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response)
         response.status(500).send(Errors.serverError);
     }
 
+});
+
+// view confirmed and pending payment list
+router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, response) => {
+    const type = request.body.type;
+    try {
+        const pool = await poolPromise;
+        if (type === "confirmed") {
+            await pool.request()
+                        .execute('getConfirmedPaymentsList', (error, result) => {
+                            if (error) {
+                                response.status(500).send(Errors.serverError);
+                            } else {
+                                response.status(200).send({
+                                    status: true,
+                                    results: result.recordsets
+                                });
+                            }
+                        });
+        } else if(type === "pending") {
+            await pool.request()
+                        .execute('getPendingPaymentsList', (error, result) => {
+                            if (error) {
+                                response.status(500).send(Errors.serverError);
+                            } else {
+                                response.status(200).send({
+                                    status: true,
+                                    results: result.recordsets
+                                });
+                            }
+                        });
+        }
+
+    } catch (error) {
+        console.error(result);
+        response.status(200).send(Errors.serverError);
+    }
 });
 
 // get students registered in particular semester
