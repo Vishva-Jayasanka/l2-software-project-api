@@ -1219,7 +1219,7 @@ WHERE S.studentID = U.username
   AND U.role = 3
   AND U.status = 1
 
-GO
+
 
 
 
@@ -1233,6 +1233,7 @@ CREATE TABLE Payment
 	studentID 			CHAR(7) NOT NULL,
 	confirmStatus       INT DEFAULT 0,
 	description         CHAR(50),
+    status              INT DEFAULT 0,
     CONSTRAINT PK_Id PRIMARY KEY (id),
     CONSTRAINT FK_paymentStudentID FOREIGN KEY (studentID) REFERENCES Student (studentID)
 )
