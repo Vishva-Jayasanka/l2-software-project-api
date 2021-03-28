@@ -3,9 +3,9 @@ const sql = require('mssql');
 const config = {
     server: 'localhost',
     instance: 'MSSQLSERVER',
-    user: 'onali',
-    password: '123456',
-    database: 'msdb',
+    user: 'jayasanka',
+    password: 'jayasanka',
+    database: 'imsdb',
     options: {
         enableArithAbort: true,
         encrypt: false
