@@ -586,6 +586,28 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
 
 });
 
+router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, response) => {
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .execute('getRegisteredUsersList', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordsets
+                    });
+                }
+            });
+    } catch (error) {
+        console.error(result);
+        response.status(200).send(Errors.serverError);
+    }
+});
+
+
+
 router.post('/check-student-id', verifyToken, verifyAdmin, async (request, response) => {
 
     const studentID = request.body.studentID;
