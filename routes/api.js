@@ -15,6 +15,28 @@ const Errors = require('../errors/errors');
 const emailVerification = require('../modules/email-verification');
 const {poolPromise} = require('../modules/sql-connection');
 
+async function calculateGPA(username, next) {
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('username', sql.Char(7), username)
+            .query('Select E.moduleCode, Ma.mark, M.credits, E.academicYear FROM Module M, exam E, Mark Ma WHERE Ma.studentID = @username AND Ma.examID = E.examID AND E.moduleCode = M.moduleCode',
+                (error, result) => {
+                if (error) {
+                    next(false);
+                } else {
+                    console.log(result.recordsets);
+                    next(true);
+                }
+            });
+    } catch (error) {
+        console.log(error);
+        next(false);
+    }
+
+}
+
 router.post('/send-password-reset-email', async (request, response) => {
 
     let username = request.body.username;
@@ -408,24 +430,31 @@ router.post('/get-timetable', verifyToken, async (request, response) => {
 router.post('/get-user-details', verifyToken, async (request, response) => {
 
     const username = request.username;
+    calculateGPA('184061R', (status) => {
+        console.log(status);
+    });
 
     try {
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('username', sql.Char(7), username)
+            .input('roleID', sql.Int, request.role)
             .execute('getUserDetails', (error, result) => {
                 if (error) {
+                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
                         status: true,
-                        details: result.recordsets
+                        details: result.recordsets[0][0],
+                        educationQualifications: result.recordsets[1]
                     });
                 }
             });
 
     } catch (error) {
+        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 

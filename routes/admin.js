@@ -688,12 +688,49 @@ router.post('/get-students-of-batch', verifyToken, verifyAdmin, async (request, 
 // Upload request form set by students
 router.post('/upload-request', verifyToken, verifyAdmin, async (request, response) => {
 
-    const req = request.body;
+    const data = request.body;
+    console.log(data);
 
     try {
+
+        console.log(data.reasons);
+
+        const reasons = new sql.Table('REASON');
+        reasons.columns.add('reason', sql.VarChar(150));
+
+        for (let reason of data.reasons) {
+            reasons.rows.add(reason);
+        }
+
+        const requests = new sql.Table('REQUEST_TYPE');
+        requests.columns.add('requestTypeID', sql.Int);
+
+        for (let requestType of data.request) {
+            requests.rows.add(requestType);
+        }
+
         const pool = await poolPromise;
-    } catch (exception) {
-        response.status(200).send(Errors.serverError);
+        await pool.request()
+            .input('studentID', sql.Char(7), data.studentID)
+            .input('date', sql.Date, data.submissionDate)
+            .input('remarks', sql.VarChar(500), data.remarks)
+            .input('recordBookAttached', sql.Bit, data.recordBookAttached)
+            .input('documentsAttached', sql.Bit, data.documentsAttached)
+            .input('requests', requests)
+            .input('reasons', reasons)
+            .execute('addRequest', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        message: 'Request saves successfully'
+                    });
+                }
+            });
+    } catch (error) {
+        console.log(error);
+        response.status(500).send(Errors.serverError);
     }
 
 });
@@ -759,6 +796,134 @@ router.post('/check-if-results-uploaded', verifyToken, verifyAdmin, async (reque
 
     } catch (Exception) {
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-request-types', verifyToken, verifyAdmin, async (request, response) => {
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .query('SELECT * FROM RequestType', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        requestTypes: result.recordset
+                    });
+                }
+            })
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-requests-brief', verifyToken, verifyAdmin, async (request, response) => {
+
+    const studentID = request.body.studentID;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.VarChar(7), studentID)
+            .execute('getRequestsBrief', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        requests: result.recordsets[0],
+                        requestTypes: result.recordsets[1]
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-request-details', verifyToken, verifyAdmin, async (request, response) => {
+    const requestID = request.body.requestID;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('requestID', sql.Int, requestID)
+            .execute('getRequestDetails', (error, result) => {
+            if (error) {
+                response.status(500).send(Errors.serverError);
+            } else {
+                response.status(200).send({
+                    status: true,
+                    request: result.recordsets[0],
+                    reviewedBy: result.recordsets[1],
+                    reasons: result.recordsets[2],
+                    reviewers: result.recordsets[3]
+                });
+            }
+        })
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/update-request-status', verifyToken, verifyAdmin, async (request, response) => {
+
+    console.log(request.body.newData);
+    const data = request.body;
+
+    try {
+
+        const requests = new sql.Table('REQUEST_TYPE');
+        requests.columns.add('requestTypeID', sql.Int);
+        for (const request of data.newData.requests) {
+            requests.rows.add(request);
+        }
+
+        const reasons = new sql.Table('REASONS');
+        reasons.columns.add('reason', sql.VarChar(150));
+        for (const reason of data.newData.reasons) {
+            reasons.rows.add(reason);
+        }
+
+        const progress = new sql.Table('PROGRESS');
+        progress.columns.add('status', sql.Int);
+        progress.columns.add('reviewedBy', sql.Int);
+        progress.columns.add('reason', sql.VarChar(200));
+        for (const step of data.newData.progress) {
+            progress.rows.add(step.status, step.reviewedBy, step.reason);
+        }
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('requestID', sql.Int, data.requestID)
+            .input('submissionDate', sql.Date, data.newData.submissionDate)
+            .input('remarks', sql.VarChar(500), data.newData.remarks)
+            .input('finalDecision', sql.Int, data.newData.finalDecision)
+            .input('recordBookAttached', sql.Bit, data.newData.recordBookAttached)
+            .input('relevantDocumentsAttached', sql.Bit, data.newData.relevantDocumentsAttached)
+            .input('requests', requests)
+            .input('reasons', reasons)
+            .input('progress', progress)
+            .execute('updateRequestStatus', (error, response) => {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        message: 'Request status updated successfully'
+                    });
+                }
+            });
+    } catch (error) {
+        console.error(error);
+        response.send(Errors.serverError);
     }
 
 });
