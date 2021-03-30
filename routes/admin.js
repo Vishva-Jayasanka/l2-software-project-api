@@ -670,30 +670,6 @@ router.post('/upload-payments', verifyToken, verifyAdmin, async (request, respon
 
 });
 
-// view payments of a student
-router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response) => {
-    const studentID = request.body.studentID;
-
-    try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('studentID', sql.Int, studentID)
-            .execute('viewPayments', (error, result) => {
-                if (error) {
-                    response.status(200).send(Errors.serverError);
-                } else {
-                    response.status(200).send({
-                        status: true,
-                        attendance: result.recordset
-                    });
-                }
-            });
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
-    }
-
-});
-
 // view confirmed and pending payment list
 router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, response) => {
     const type = request.body.type;
