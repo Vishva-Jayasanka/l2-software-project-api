@@ -707,6 +707,33 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
     }
 });
 
+router.post('/get-payment-details', verifyToken, verifyStudent, async (request, response) => {
+
+    const slipNo = request.slipNo;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('slipNo', sql.Char(7), slipNo)
+            .execute('viewPaymentDetails', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordsets
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
 // get students registered in particular semester
 router.post('/get-students-of-batch', verifyToken, verifyAdmin, async (request, response) => {
     const batch = request.body.batch;
