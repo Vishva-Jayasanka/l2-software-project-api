@@ -1,12 +1,10 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const ObjectID = require('mongodb').ObjectID;
 const sql = require('mssql');
 const fs = require('fs');
+const convert = require('xml-js')
 
-const User = require('../models/user');
 const Module = require('../models/module');
 const LectureHour = require('../models/lecture-hour');
 const verifyToken = require('../modules/user-verification').VerifyToken;
@@ -23,13 +21,13 @@ async function calculateGPA(username, next) {
             .input('username', sql.Char(7), username)
             .query('Select E.moduleCode, Ma.mark, M.credits, E.academicYear FROM Module M, exam E, Mark Ma WHERE Ma.studentID = @username AND Ma.examID = E.examID AND E.moduleCode = M.moduleCode',
                 (error, result) => {
-                if (error) {
-                    next(false);
-                } else {
-                    console.log(result.recordsets);
-                    next(true);
-                }
-            });
+                    if (error) {
+                        next(false);
+                    } else {
+                        console.log(result.recordsets);
+                        next(true);
+                    }
+                });
     } catch (error) {
         console.log(error);
         next(false);
@@ -213,29 +211,29 @@ router.post('/send-verification-email', verifyToken, async (request, response) =
                     'UPDATE Users SET email = @email WHERE username = @username; ' +
                     'SELECT username, firstName, lastName FROM Users WHERE username = @username',
                     (error, result) => {
-                    if (error) {
-                        response.status(500).send(Errors.serverError);
-                    } else {
-                        const user = result.recordset[0];
-                        user.token = jwt.sign({
-                            username: user.username,
-                            email: email,
-                            timeSent: Date.now()
-                        }, 'verify_email');
-                        user.email = email;
+                        if (error) {
+                            response.status(500).send(Errors.serverError);
+                        } else {
+                            const user = result.recordset[0];
+                            user.token = jwt.sign({
+                                username: user.username,
+                                email: email,
+                                timeSent: Date.now()
+                            }, 'verify_email');
+                            user.email = email;
 
-                        emailVerification.sendVerificationEmail(user, (status) => {
-                            if (status) {
-                                response.status(200).send({
-                                    status: true,
-                                    message: 'Verification email sent'
-                                })
-                            } else {
-                                response.status(500).send(Errors.serverError);
-                            }
-                        });
-                    }
-                });
+                            emailVerification.sendVerificationEmail(user, (status) => {
+                                if (status) {
+                                    response.status(200).send({
+                                        status: true,
+                                        message: 'Verification email sent'
+                                    })
+                                } else {
+                                    response.status(500).send(Errors.serverError);
+                                }
+                            });
+                        }
+                    });
         } catch (error) {
             response.status(500).send(Errors.serverError);
         }
@@ -402,22 +400,33 @@ router.post('/get-profile-picture', verifyToken, async (request, response) => {
 
 });
 
-router.post('/get-timetable', verifyToken, async (request, response) => {
+router.get('/get-timetable/:username/:role', async (request, response) => {
 
     try {
 
         const pool = await poolPromise;
-        const result = await pool.request()
-            .input('username', sql.Char(7), request.username)
-            .input('role', sql.Int, request.role)
+        await pool.request()
+            .input('username', sql.Char(7), request.params.username)
+            .input('role', sql.Int, request.params.role)
             .execute('getTimetables', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    response.status(200).send({
-                        status: true,
-                        times: result.recordset
+                    const data = result.recordset.map(session => {
+                        return {
+                            Id: session.lectureHourID,
+                            Subject: session.moduleCode + ' ' + session.moduleName,
+                            // StartTime: new Date(2021, 2, 28, 8, 15),
+                            // EndTime: new Date(2021, 2, 28, 10, 15),
+                            StartTime: new Date(session.startingTime),
+                            EndTime: new Date(session.endingTime),
+                            Description: session.type,
+                            LectureHall: session.lectureHall,
+                            day: session.day,
+                            IsAllDay: false
+                        };
                     });
+                    response.status(200).send(data);
                 }
             });
 
@@ -506,6 +515,69 @@ router.post('/update-notification-status', verifyToken, async (request, response
                 }
             });
     } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-requests', verifyToken, async (request, response) => {
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), request.username)
+            .execute('getRequests', (error, result) => {
+                if (error) {
+                    console.error(error);
+                    response.status(200).send(Errors.serverError);
+                } else {
+                    const requests = result.recordsets[0];
+                    for (const request of requests) {
+                        request.requestTypes = result.recordsets[1].filter(req => req.requestID === request.requestID);
+                        request.reasons = result.recordsets[2].filter(reason => reason.requestID === request.requestID);
+                        request.reviewedBy = result.recordsets[3].filter(step => step.requestID === request.requestID);
+                    }
+                    response.status(200).send({
+                        status: true,
+                        message: 'Request received successfully',
+                        requests
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-academic-calenders', verifyToken, async (request, response) => {
+
+    try {
+        const pool = await poolPromise;
+        pool.request()
+            .execute('getAcademicCalenders', (error, result) => {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    const academicYears = result.recordsets[0];
+                    const academicYearTasks = result.recordsets[1];
+                    const academicCalenders = [];
+                    for (let academicYear of academicYears) {
+                        academicCalenders.push({
+                            year: academicYear.academicYear,
+                            data: academicYearTasks.filter(obj => obj.AcademicYear === academicYear.academicYear)
+                        });
+                    }
+                    response.status(200).send({
+                        status: true,
+                        message: 'Request status updated successfully',
+                        academicCalenders: academicCalenders
+                    });
+                }
+            });
+    } catch (error) {
+        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 

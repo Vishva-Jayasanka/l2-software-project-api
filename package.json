@@ -20,7 +20,9 @@
     "mongodb": "latest",
     "mongoose": "^5.11.17",
     "morgan": "^1.10.0",
-    "ws": "^7.4.3"
+    "ws": "^7.4.3",
+    "xml": "^1.0.1",
+    "xml-js": "^1.6.11"
   },
   "devDependencies": {
     "mssql": "^6.3.1",

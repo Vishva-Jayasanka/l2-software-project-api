@@ -236,7 +236,6 @@ router.post('/get-sessions', verifyToken, verifyAdmin, async (request, response)
 
 router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, response) => {
     const data = request.body;
-    console.log(data);
 
     try {
 
@@ -259,7 +258,6 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
             .execute('uploadAttendance', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
-                    console.error(error);
                 } else {
                     response.status(200).send({
                         status: true,
@@ -268,7 +266,6 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
                 }
             });
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -284,7 +281,6 @@ router.post('/get-session-attendance', verifyToken, verifyAdmin, async (request,
             .input('sessionID', sql.Int, sessionID)
             .execute('getSessionAttendance', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -383,7 +379,6 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
             .input('marks', marks)
             .execute('uploadMarks', (error, result) => {
                 if (error) {
-                    console.error(error);
                     if (error.number === 2627) {
                         response.status(400).send({
                             status: false,
@@ -417,7 +412,6 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
                 }
             });
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -443,7 +437,6 @@ router.post('/get-module-results', async (request, response) => {
                 }
             });
     } catch (error) {
-        console.error(result);
         response.status(200).send(Errors.serverError);
     }
 
@@ -469,7 +462,6 @@ router.post('/edit-results', verifyToken, verifyAdmin, async (request, response)
             .input('results', results)
             .execute('editResults', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -479,7 +471,6 @@ router.post('/edit-results', verifyToken, verifyAdmin, async (request, response)
                 }
             });
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 });
@@ -518,7 +509,6 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
 
     try {
 
-        console.log(data.academicYear);
         const year = (data.academicYear.toString().substring(2, 4));
 
         const pool = await poolPromise;
@@ -567,7 +557,6 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                         .input('educationQualifications', qualifications)
                         .execute('registerStudent', (error, result) => {
                             if (error) {
-                                console.log(error);
                                 response.status(500).send(Errors.serverError);
                             } else {
                                 response.status(200).send({
@@ -580,7 +569,6 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
             });
 
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -634,7 +622,6 @@ router.post('/upload-payments', verifyToken, verifyAdmin, async (request, respon
             .input('paymentDate', sql.Date, data.deposit.paymentDate)
             .execute('uploadPayments', function (error, result) {
                 if (error) {
-                    console.error(error);
                     response.send(Errors.serverError);
                 } else {
                     response.send({
@@ -689,11 +676,8 @@ router.post('/get-students-of-batch', verifyToken, verifyAdmin, async (request, 
 router.post('/upload-request', verifyToken, verifyAdmin, async (request, response) => {
 
     const data = request.body;
-    console.log(data);
 
     try {
-
-        console.log(data.reasons);
 
         const reasons = new sql.Table('REASON');
         reasons.columns.add('reason', sql.VarChar(150));
@@ -729,7 +713,6 @@ router.post('/upload-request', verifyToken, verifyAdmin, async (request, respons
                 }
             });
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -874,7 +857,6 @@ router.post('/get-request-details', verifyToken, verifyAdmin, async (request, re
 
 router.post('/update-request-status', verifyToken, verifyAdmin, async (request, response) => {
 
-    console.log(request.body.newData);
     const data = request.body;
 
     try {
@@ -896,7 +878,7 @@ router.post('/update-request-status', verifyToken, verifyAdmin, async (request, 
         progress.columns.add('reviewedBy', sql.Int);
         progress.columns.add('reason', sql.VarChar(200));
         for (const step of data.newData.progress) {
-            progress.rows.add(step.status, step.reviewedBy, step.reason);
+            progress.rows.add(step.status, step.by, step.reason);
         }
 
         const pool = await poolPromise;
@@ -910,9 +892,8 @@ router.post('/update-request-status', verifyToken, verifyAdmin, async (request, 
             .input('requests', requests)
             .input('reasons', reasons)
             .input('progress', progress)
-            .execute('updateRequestStatus', (error, response) => {
+            .execute('updateRequestStatus', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -922,8 +903,53 @@ router.post('/update-request-status', verifyToken, verifyAdmin, async (request, 
                 }
             });
     } catch (error) {
-        console.error(error);
-        response.send(Errors.serverError);
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/update-academic-calender', verifyToken, verifyAdmin, async (request, response) => {
+
+    const data = request.body;
+
+    try {
+
+        const academicYears = new sql.Table('ACADEMIC_YEARS');
+        academicYears.columns.add('academicYear', sql.Int);
+
+        const tasks = new sql.Table('ACADEMIC_YEAR_TASKS');
+        tasks.columns.add('AcademicYear', sql.Int);
+        tasks.columns.add('TaskName', sql.VarChar(30));
+        tasks.columns.add('StartDate', sql.VarChar(50));
+        tasks.columns.add('EndDate', sql.VarChar(50));
+
+        for (let year of data) {
+            academicYears.rows.add(year.year);
+            for (let task of year.data) {
+                tasks.rows.add(year.year, task.TaskName, task.StartDate, task.EndDate);
+            }
+        }
+
+        console.log(tasks.rows);
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('academicYears', academicYears)
+            .input('tasks', tasks)
+            .execute('updateAcademicCalender', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    console.log(result.recordset);
+                    response.status(200).send({
+                        status: true,
+                        message: 'Academic Calender updated successfully'
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
     }
 
 });
