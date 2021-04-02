@@ -546,10 +546,13 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                         .input('studentID', sql.Char(7), studentID)
                         .input('courseID', sql.Int, data.courseName)
                         .input('academicYear', sql.Int, data.academicYear)
+                        .input('title', sql.VarChar(100), data.name.title)
                         .input('fullName', sql.VarChar(100), data.name.fullName)
                         .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
-                        .input('firstName', sql.VarChar(20), name[0])
-                        .input('lastName', sql.VarChar(20), name[1])
+//                        .input('firstName', sql.VarChar(20), name[0])
+//                        .input('lastName', sql.VarChar(20), name[1])
+                        .input('firstName', sql.VarChar(20), data.name.fullName)
+                        .input('lastName', sql.VarChar(20), data.name.nameWithInitials)
                         .input('address', sql.VarChar(255), data.address.permanentAddress)
                         .input('district', sql.Char(5), data.address.district)
                         .input('province', sql.Char(4), data.address.province)
@@ -707,7 +710,7 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
     }
 });
 
-router.post('/get-payment-details', verifyToken, verifyStudent, async (request, response) => {
+router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
 
     const slipNo = request.slipNo;
 

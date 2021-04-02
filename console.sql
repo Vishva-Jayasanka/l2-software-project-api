@@ -1156,6 +1156,7 @@ CREATE PROCEDURE registerStudent
     @studentID CHAR(7),
     @courseID VARCHAR(50),
     @academicYear INT,
+    @title Varchar(10),
     @fullName VARCHAR(100),
     @nameWithInitials VARCHAR(50),
     @firstName VARCHAR(20),
@@ -1178,7 +1179,7 @@ CREATE PROCEDURE registerStudent
 AS
     BEGIN TRANSACTION
 
-INSERT INTO Users VALUES (@studentID, @nic, @email, @firstName, @lastName, 3)
+INSERT INTO Users VALUES (@studentID, @nic, @email, @firstName, @lastName, 3, @title,1)
     IF @@ROWCOUNT = 0 GOTO errorHandler
 
 INSERT INTO Student VALUES (@studentID, @courseID, @fullName, @nameWithInitials, @address, @district, @province, @dateOfBirth, @race, @religion, @gender, @nic, @mobile, @home, @designation, @employer, @company, @academicyear)
@@ -1205,19 +1206,18 @@ DECLARE @degree VARCHAR(50), @institute VARCHAR(50), @dateCompleted DATE, @class
     RETURN -1
 GO
 
-
-
 --==================Newly added=============================
 
 -- Get Registered users.
 CREATE PROCEDURE getRegisteredUsersList AS
 
-SELECT U.title, S.fullName, S.nic, U.email, S.mobile
+SELECT COUNT(S.studentID) position, U.title, S.fullName,.nic, U.email, S.mobile, S.studentID
 FROM Student S,
      Users U
 WHERE S.studentID = U.username
   AND U.role = 3
   AND U.status = 1
+  GROUP BY  U.title, S.fullName, S.nic, U.email, S.mobile, S.studentID
 
 GO
 
@@ -1288,7 +1288,7 @@ WHERE P.studentID = @studentID
   AND P.studentID = S.studentID
   AND S.StudentID = U.username
   ORDER BY P.paymentDate ASC
-  
+
 GO
 
 -- Get Details of a payment
