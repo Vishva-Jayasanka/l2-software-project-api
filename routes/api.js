@@ -290,6 +290,42 @@ router.post('/get-detailed-attendance', verifyToken, async (request, response) =
     }
 });
 
+router.post('/check-student-id', verifyToken, async (request, response) => {
+
+    const studentID = request.body.studentID;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('checkStudentID', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.returnValue === 0) {
+                        response.status(200).send({
+                            status: true,
+                            name: result.recordset[0].name,
+                            course: result.recordset[0].course,
+                            academicYear: result.recordset[0].academicYear,
+                            studentID: result.recordset[0].studentID
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: false,
+                            message: 'Student ID not found'
+                        });
+                    }
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+
 router.post('/get-lecture-hours', verifyToken, function (request, response) {
     LectureHour.find({}, {_id: 0, completedLectures: 0, __v: 0}, (error, lectureHours) => {
         if (error) {
