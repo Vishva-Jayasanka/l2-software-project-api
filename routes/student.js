@@ -15,8 +15,8 @@ function verifyStudent(request, response, next) {
 }
 
 router.post('/get-student-payment-details', verifyToken, verifyStudent, async (request, response) => {
-
-    const studentID = request.studentId;
+    console.log('request.body.studentID;=', request.body.studentID);
+    const studentID = request.body.studentID;;
 
     try {
 

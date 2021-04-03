@@ -464,7 +464,7 @@ CREATE PROCEDURE checkStudentID @studentID CHAR(7) AS
               WHERE studentID = @studentID
                 AND C.courseID = S.courseID)
         BEGIN
-            SELECT S.fullName name, C.courseName course, S.academicYear academicYear
+            SELECT S.studentID, S.fullName name, C.courseName course, S.academicYear academicYear
             FROM Student S,
                  Course C
             WHERE studentID = @studentID

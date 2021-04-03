@@ -628,7 +628,8 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
                             status: true,
                             name: result.recordset[0].name,
                             course: result.recordset[0].course,
-                            academicYear: result.recordset[0].academicYear
+                            academicYear: result.recordset[0].academicYear,
+                            studentID: result.recordset[0].studentID
                         });
                     } else {
                         response.status(200).send({
