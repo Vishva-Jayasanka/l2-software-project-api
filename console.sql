@@ -1248,13 +1248,15 @@ GO
 
 
 -- Get confirmed payment lists filter using . 0 for pending payments 1 for confirmed payments, -1 for rejected payments.
-CREATE PROCEDURE getConfirmedPaymentsList AS
+CREATE PROCEDURE getConfirmedPaymentsList @courseID INT, @academicyear INT AS
 SELECT SUM(P.amount) AS totalPayment, S.studentID, U.title, S.fullName, C.courseName
 FROM Payment P,
 	 Student S,
      Users U,
 	 Course C
 WHERE P.confirmStatus = 1
+  AND S.academicYear = @academicyear
+  AND S.courseID = @courseID
   AND P.studentID = S.studentID
   AND S.StudentID = U.username
   AND S.courseId  = C.courseID

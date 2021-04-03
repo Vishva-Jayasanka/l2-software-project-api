@@ -678,11 +678,13 @@ router.post('/upload-payments', verifyToken, verifyAdmin, async (request, respon
 // view confirmed and pending payment list
 router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, response) => {
     const type = request.body.type;
-    try {
+    try{
         const pool = await poolPromise;
-        if (type === "confirmed") {
+        if (type === 'confirmed') {
             await pool.request()
-                        .execute('getConfirmedPaymentsList', (error, result) => {
+                .input('courseID', sql.Int, request.body.courseID)
+                .input('academicYear', sql.Int, request.body.academicYear)
+                .execute('getConfirmedPaymentsList', (error, result) => {
                             if (error) {
                                 response.status(500).send(Errors.serverError);
                             } else {
@@ -692,18 +694,18 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
                                 });
                             }
                         });
-        } else if(type === "pending") {
+        } else if(type === 'pending') {
             await pool.request()
-                        .execute('getPendingPaymentsList', (error, result) => {
-                            if (error) {
-                                response.status(500).send(Errors.serverError);
-                            } else {
-                                response.status(200).send({
-                                    status: true,
-                                    results: result.recordsets
-                                });
-                            }
+                .execute('getPendingPaymentsList', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            results: result.recordsets
                         });
+                    }
+                })
         }
 
     } catch (error) {
