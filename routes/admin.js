@@ -646,18 +646,19 @@ router.post('/check-student-id', verifyToken, verifyAdmin, async (request, respo
 });
 
 // upload payments  --TODO--
-router.post('/upload-payments', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/upload-payment', verifyToken, verifyAdmin, async (request, response) => {
     const data = request.body;
+    console.log(data);
     try {
         const pool = await poolPromise;
         await pool.request()
-            .input('studentID', sql.Char(7), data.depositor.registrationNumber)
-            .input('bank', sql.VarChar(50), data.deposit.bankName)
-            .input('slipNo', sql.Int, data.deposit.slipNumber)
-            .input('amount', sql.Money, data.deposit.totalPaid)
-            .input('paymentDate', sql.Date, data.deposit.paymentDate)
-            .input('confirmStatus', sql.Int, data.deposit.confirmStatus)
-            .execute('uploadPayments', function (error, result) {
+            .input('studentID', sql.Char(7), data.paymentForm.depositor.registrationNumber)
+            .input('bank', sql.VarChar(50), data.paymentForm.deposit.bankName)
+            .input('slipNo', sql.Int, data.paymentForm.deposit.slipNumber)
+            .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
+            .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
+            .input('paymentStatus', sql.Int, 1)
+            .execute('uploadPayment', function (error, result) {
                 if (error) {
                     console.error(error);
                     response.send(Errors.serverError);
