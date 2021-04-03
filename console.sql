@@ -464,7 +464,7 @@ CREATE PROCEDURE checkStudentID @studentID CHAR(7) AS
               WHERE studentID = @studentID
                 AND C.courseID = S.courseID)
         BEGIN
-            SELECT S.fullName name, C.courseName course, S.academicYear academicYear
+            SELECT S.studentID, S.fullName name, C.courseName course, S.academicYear academicYear
             FROM Student S,
                  Course C
             WHERE studentID = @studentID
@@ -1324,8 +1324,8 @@ GO
 
 -- upload students payments to the system.
 
-CREATE PROCEDURE uploadPayments
-    @slipNo 	   CHAR(50),
+CREATE PROCEDURE uploadPayment
+    @slipNo 	   INT,
     @amount 	   INT,
     @paymentDate   DATE,
     @bank          CHAR(50),
@@ -1348,4 +1348,4 @@ AS
     RETURN -1
 GO
 
---EXEC uploadPayments '123463',180000,'2020-11-18','BOC','204002B',-1;
+--EXEC uploadPayment '123463',180000,'2020-11-18','BOC','204002B',-1;
