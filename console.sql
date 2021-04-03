@@ -1206,8 +1206,6 @@ DECLARE @degree VARCHAR(50), @institute VARCHAR(50), @dateCompleted DATE, @class
     RETURN -1
 GO
 
-
-
 --==================Newly added=============================
 
 -- Get Registered users.
@@ -1289,7 +1287,7 @@ WHERE P.studentID = @studentID
   AND P.studentID = S.studentID
   AND S.StudentID = U.username
   ORDER BY P.paymentDate ASC
-  
+
 GO
 
 -- Get Details of a payment
