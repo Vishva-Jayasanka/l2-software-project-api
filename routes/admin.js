@@ -546,10 +546,13 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                         .input('studentID', sql.Char(7), studentID)
                         .input('courseID', sql.Int, data.courseName)
                         .input('academicYear', sql.Int, data.academicYear)
+                        .input('title', sql.VarChar(100), data.name.title)
                         .input('fullName', sql.VarChar(100), data.name.fullName)
                         .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
-                        .input('firstName', sql.VarChar(20), name[0])
-                        .input('lastName', sql.VarChar(20), name[1])
+//                        .input('firstName', sql.VarChar(20), name[0])
+//                        .input('lastName', sql.VarChar(20), name[1])
+                        .input('firstName', sql.VarChar(20), data.name.fullName)
+                        .input('lastName', sql.VarChar(20), data.name.nameWithInitials)
                         .input('address', sql.VarChar(255), data.address.permanentAddress)
                         .input('district', sql.Char(5), data.address.district)
                         .input('province', sql.Char(4), data.address.province)
@@ -590,6 +593,8 @@ router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, r
     try {
         const pool = await poolPromise;
         await pool.request()
+            .input('courseID', sql.Int, request.body.courseID)
+            .input('academicYear', sql.Int, request.body.academicYear)
             .execute('getRegisteredUsersList', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
@@ -606,53 +611,21 @@ router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, r
     }
 });
 
-router.post('/check-student-id', verifyToken, verifyAdmin, async (request, response) => {
-
-    const studentID = request.body.studentID;
-
-    try {
-        const pool = await poolPromise;
-        await pool.request()
-            .input('studentID', sql.Char(7), studentID)
-            .execute('checkStudentID', (error, result) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    if (result.returnValue === 0) {
-                        response.status(200).send({
-                            status: true,
-                            name: result.recordset[0].name,
-                            course: result.recordset[0].course,
-                            academicYear: result.recordset[0].academicYear
-                        });
-                    } else {
-                        response.status(200).send({
-                            status: false,
-                            message: 'Student ID not found'
-                        });
-                    }
-                }
-            });
-
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
-    }
-
-});
 
 // upload payments  --TODO--
-router.post('/upload-payments', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/upload-payment', verifyToken, verifyAdmin, async (request, response) => {
     const data = request.body;
+    console.log(data);
     try {
         const pool = await poolPromise;
         await pool.request()
-            .input('studentID', sql.Char(7), data.depositor.registrationNumber)
-            .input('bank', sql.VarChar(50), data.deposit.bankName)
-            .input('slipNo', sql.Int, data.deposit.slipNumber)
-            .input('amount', sql.Money, data.deposit.totalPaid)
-            .input('paymentDate', sql.Date, data.deposit.paymentDate)
-            .input('confirmStatus', sql.Int, data.deposit.confirmStatus)
-            .execute('uploadPayments', function (error, result) {
+            .input('studentID', sql.Char(7), data.paymentForm.depositor.registrationNumber)
+            .input('bank', sql.VarChar(50), data.paymentForm.deposit.bankName)
+            .input('slipNo', sql.Int, data.paymentForm.deposit.slipNumber)
+            .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
+            .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
+            .input('paymentStatus', sql.Int, 1)
+            .execute('uploadPayment', function (error, result) {
                 if (error) {
                     console.error(error);
                     response.send(Errors.serverError);
@@ -670,38 +643,16 @@ router.post('/upload-payments', verifyToken, verifyAdmin, async (request, respon
 
 });
 
-// view payments of a student
-router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response) => {
-    const studentID = request.body.studentID;
-
-    try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('studentID', sql.Int, studentID)
-            .execute('viewPayments', (error, result) => {
-                if (error) {
-                    response.status(200).send(Errors.serverError);
-                } else {
-                    response.status(200).send({
-                        status: true,
-                        attendance: result.recordset
-                    });
-                }
-            });
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
-    }
-
-});
-
 // view confirmed and pending payment list
 router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, response) => {
     const type = request.body.type;
-    try {
+    try{
         const pool = await poolPromise;
-        if (type === "confirmed") {
+        if (type === 'confirmed') {
             await pool.request()
-                        .execute('getConfirmedPaymentsList', (error, result) => {
+                .input('courseID', sql.Int, request.body.courseID)
+                .input('academicYear', sql.Int, request.body.academicYear)
+                .execute('getConfirmedPaymentsList', (error, result) => {
                             if (error) {
                                 response.status(500).send(Errors.serverError);
                             } else {
@@ -711,24 +662,51 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
                                 });
                             }
                         });
-        } else if(type === "pending") {
+        } else if(type === 'pending') {
             await pool.request()
-                        .execute('getPendingPaymentsList', (error, result) => {
-                            if (error) {
-                                response.status(500).send(Errors.serverError);
-                            } else {
-                                response.status(200).send({
-                                    status: true,
-                                    results: result.recordsets
-                                });
-                            }
+                .execute('getPendingPaymentsList', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            results: result.recordsets
                         });
+                    }
+                })
         }
 
     } catch (error) {
         console.error(result);
         response.status(200).send(Errors.serverError);
     }
+});
+
+router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
+
+    const slipNo = request.slipNo;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('slipNo', sql.Char(7), slipNo)
+            .execute('viewPaymentDetails', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordsets
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
 });
 
 // get students registered in particular semester

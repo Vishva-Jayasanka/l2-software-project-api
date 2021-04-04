@@ -464,7 +464,7 @@ CREATE PROCEDURE checkStudentID @studentID CHAR(7) AS
               WHERE studentID = @studentID
                 AND C.courseID = S.courseID)
         BEGIN
-            SELECT S.fullName name, C.courseName course, S.academicYear academicYear
+            SELECT S.studentID, S.fullName name, C.courseName course, S.academicYear academicYear
             FROM Student S,
                  Course C
             WHERE studentID = @studentID
@@ -1156,6 +1156,7 @@ CREATE PROCEDURE registerStudent
     @studentID CHAR(7),
     @courseID VARCHAR(50),
     @academicYear INT,
+    @title Varchar(10),
     @fullName VARCHAR(100),
     @nameWithInitials VARCHAR(50),
     @firstName VARCHAR(20),
@@ -1178,7 +1179,7 @@ CREATE PROCEDURE registerStudent
 AS
     BEGIN TRANSACTION
 
-INSERT INTO Users VALUES (@studentID, @nic, @email, @firstName, @lastName, 3)
+INSERT INTO Users VALUES (@studentID, @nic, @email, @firstName, @lastName, 3, @title,1)
     IF @@ROWCOUNT = 0 GOTO errorHandler
 
 INSERT INTO Student VALUES (@studentID, @courseID, @fullName, @nameWithInitials, @address, @district, @province, @dateOfBirth, @race, @religion, @gender, @nic, @mobile, @home, @designation, @employer, @company, @academicyear)
@@ -1205,27 +1206,25 @@ DECLARE @degree VARCHAR(50), @institute VARCHAR(50), @dateCompleted DATE, @class
     RETURN -1
 GO
 
-
-
 --==================Newly added=============================
 
 -- Get Registered users.
-CREATE PROCEDURE getRegisteredUsersList AS
-
-SELECT U.title, S.fullName, S.nic, U.email, S.mobile
+CREATE PROCEDURE getRegisteredUsersList @courseID INT, @academicyear INT AS
+SELECT U.title, S.fullName, S.nic, U.email, S.mobile, S.studentID
 FROM Student S,
      Users U
-WHERE S.studentID = U.username
+WHERE S.academicYear = @academicyear
+  AND S.courseID = @courseID
+  AND S.studentID = U.username
   AND U.role = 3
   AND U.status = 1
+GROUP BY U.title, S.fullName, S.nic, U.email, S.mobile, S.studentID
 
 GO
 
-
-
 CREATE TABLE Payment
 (
-	id   				INT NOT NULL,
+	id   				INT IDENTITY(1,1) PRIMARY KEY,
     slipNo 				CHAR(50) NOT NULL UNIQUE,
     amount 				INT,
 	paymentDate			DATE,
@@ -1233,32 +1232,31 @@ CREATE TABLE Payment
 	studentID 			CHAR(7) NOT NULL,
 	confirmStatus       INT DEFAULT 0,
 	description         CHAR(50),
-    status              INT DEFAULT 0,
-    CONSTRAINT PK_Id PRIMARY KEY (id),
     CONSTRAINT FK_paymentStudentID FOREIGN KEY (studentID) REFERENCES Student (studentID)
 )
 GO
 
+INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,confirmStatus)
+VALUES ('123456',250000,'2020-02-12','sampath','184061R',1),
+       ('123457',280000,'2020-02-18','Boc','204001F',1),
+       ('123458',450000,'2020-02-20','HNB','204002B',0),
+	   ('123459',200000,'2020-09-20','sampath','184061R',0),
+	   ('123460',170000,'2020-10-18','BOC','204001F',0),
+	   ('123461',170000,'2020-10-18','BOC','204001F',-1);
 
-
-INSERT INTO Payment
-VALUES (1,'123456',250000,'2020-02-12','sampath','184061R',1),
-       (2,'123457',280000,'2020-02-18','Boc','204001F',1),
-       (3,'123458',450000,'2020-02-20','HNB','204002B',0),
-	   (4,'123459',200000,'2020-09-20','sampath','184061R',0),
-	   (5,'123460',170000,'2020-10-18','BOC','204001F',0);
 GO
 
 
-
 -- Get confirmed payment lists filter using . 0 for pending payments 1 for confirmed payments, -1 for rejected payments.
-CREATE PROCEDURE getConfirmedPaymentsList AS
+CREATE PROCEDURE getConfirmedPaymentsList @courseID INT, @academicyear INT AS
 SELECT SUM(P.amount) AS totalPayment, S.studentID, U.title, S.fullName, C.courseName
 FROM Payment P,
 	 Student S,
      Users U,
 	 Course C
 WHERE P.confirmStatus = 1
+  AND S.academicYear = @academicyear
+  AND S.courseID = @courseID
   AND P.studentID = S.studentID
   AND S.StudentID = U.username
   AND S.courseId  = C.courseID
@@ -1291,7 +1289,7 @@ WHERE P.studentID = @studentID
   AND P.studentID = S.studentID
   AND S.StudentID = U.username
   ORDER BY P.paymentDate ASC
-  
+
 GO
 
 -- Get Details of a payment
@@ -1324,5 +1322,30 @@ WHERE P.studentID = @studentID
   
 GO
 
---TODO--
---CREATE PROCEDURE uploadPayments @studentID CHAR(50) AS
+-- upload students payments to the system.
+
+CREATE PROCEDURE uploadPayment
+    @slipNo 	   INT,
+    @amount 	   INT,
+    @paymentDate   DATE,
+    @bank          CHAR(50),
+    @studentID 	   CHAR(7),
+	@paymentStatus INT
+AS
+    BEGIN TRANSACTION
+   IF EXISTS(SELECT * FROM Student WHERE studentID = @studentID)
+        BEGIN
+			INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,confirmStatus)
+			VALUES (@slipNo,  @amount, @paymentDate, @bank, @studentID, @paymentStatus )
+        END
+	ELSE
+		RETURN -1
+	COMMIT TRANSACTION
+    RETURN 0
+    errorHandler:
+    ROLLBACK TRANSACTION
+    PRINT 'Transaction failed..!'
+    RETURN -1
+GO
+
+--EXEC uploadPayment '123463',180000,'2020-11-18','BOC','204002B',-1;
