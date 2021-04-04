@@ -419,6 +419,8 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
 
 router.post('/get-module-results', async (request, response) => {
 
+    console.log(request.body);
+
     try {
         const pool = await poolPromise;
         await pool.request()
@@ -428,17 +430,80 @@ router.post('/get-module-results', async (request, response) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    response.status(200).send({
-                        status: true,
-                        examID: result.recordset[0].examID,
-                        dateHeld: result.recordset[0].dateHeld,
-                        results: result.recordsets[1]
-                    });
+                    if (result.recordsets.length === 2) {
+                        response.status(200).send({
+                            status: true,
+                            examID: result.recordsets[0].examID,
+                            results: result.recordsets[1]
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: false,
+                            message: 'No exams found for this academic year'
+                        });
+                    }
                 }
             });
     } catch (error) {
         response.status(200).send(Errors.serverError);
     }
+
+});
+
+router.post('/get-module-results-view', verifyToken, verifyAdmin, async (request, response) => {
+
+    const moduleCode = request.body.moduleCode;
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('moduleCode', sql.Char(6), moduleCode)
+            .query('SELECT E.academicYear, E.dateHeld, M.studentID, M.mark, M.grade FROM Exam E, Mark M WHERE E.moduleCode = @moduleCode AND M.examID = E.examID',
+                (error, result) => {
+                    if (error) {
+                        console.log(error);
+                        response.send(Errors.serverError);
+                    } else {
+                        console.log(result.recordset);
+                        response.status(200).send({
+                            status: true,
+                            results: result.recordset
+                        });
+                    }
+                });
+
+    } catch (error) {
+        console.error(error);
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-student-results', verifyToken, verifyAdmin, async (request, response) => {
+
+    const studentID = request.body.studentID;
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('getStudentResults', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordset
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
 
 });
 
@@ -837,18 +902,18 @@ router.post('/get-request-details', verifyToken, verifyAdmin, async (request, re
         await pool.request()
             .input('requestID', sql.Int, requestID)
             .execute('getRequestDetails', (error, result) => {
-            if (error) {
-                response.status(500).send(Errors.serverError);
-            } else {
-                response.status(200).send({
-                    status: true,
-                    request: result.recordsets[0],
-                    reviewedBy: result.recordsets[1],
-                    reasons: result.recordsets[2],
-                    reviewers: result.recordsets[3]
-                });
-            }
-        })
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        request: result.recordsets[0],
+                        reviewedBy: result.recordsets[1],
+                        reasons: result.recordsets[2],
+                        reviewers: result.recordsets[3]
+                    });
+                }
+            })
     } catch (error) {
         response.status(500).send(Errors.serverError);
     }
@@ -951,6 +1016,71 @@ router.post('/update-academic-calender', verifyToken, verifyAdmin, async (reques
     } catch (error) {
         response.status(500).send(Errors.serverError);
     }
+
+});
+
+router.post('/check-keyword', verifyToken, verifyAdmin, async (request, response) => {
+
+    const keyword = request.body.keyword;
+
+    try {
+
+        const pool = await poolPromise;
+        if (/^[A-Za-z]{2}[0-9]{4}$/.test(keyword)) {
+            await pool.request()
+                .input('moduleCode', sql.Char(6), keyword)
+                .execute('checkModule', (error, result) => {
+                    if (error) {
+                        console.log(error);
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        console.log(result.recordset);
+                        if (result.returnValue === 0) {
+                            response.status(200).send({
+                                status: true,
+                                moduleName: result.recordset[0].moduleName
+                            });
+                        } else {
+                            response.status(200).send({
+                                status: false,
+                                message: 'No module found with this module code'
+                            });
+                        }
+                    }
+                });
+        } else if (/^[0-9]{6}[A-Za-z]$/.test(keyword)) {
+            await pool.request()
+                .input('studentID', sql.Char(7), keyword)
+                .execute('checkStudentID', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        if (result.returnValue === 0) {
+                            response.status(200).send({
+                                status: true,
+                                studentName: result.recordset[0].name,
+                                course: result.recordset[0].course,
+                                academicYear: result.recordset[0].academicYear
+                            });
+                        } else {
+                            response.status(200).send({
+                                status: false,
+                                message: 'No student found with this student ID'
+                            });
+                        }
+                    }
+                });
+        } else {
+            response.status(400).send({
+                status: false,
+                message: 'Malformed request syntax'
+            });
+        }
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
 
 });
 
