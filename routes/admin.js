@@ -450,6 +450,99 @@ router.post('/get-module-results', async (request, response) => {
 
 });
 
+router.post('/get-module-attendance', verifyToken, verifyAdmin, async (request, response) => {
+
+    const moduleCode = request.body.moduleCode;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('moduleCode', sql.Char(6), moduleCode)
+            .execute('getModuleAttendance', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(200).send(Errors.serverError);
+                } else {
+                    const attendance = result.recordset.map(obj => {
+                        return {
+                            type: obj.type,
+                            dateHeld: obj.date,
+                            sessionID: obj.sessionID,
+                            academicYear: obj.batch,
+                            attendance: (obj.total - obj.count) * 100 / obj.total
+                        }
+                    });
+                    response.status(200).send({
+                        status: true,
+                        attendance
+                    });
+                }
+            })
+    } catch (error) {
+        console.log(error);
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-detailed-student-attendance', verifyToken, verifyAdmin, async (request, response) => {
+
+    const data = request.body;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), data.studentID)
+            .input('moduleCode', sql.Char(6), data.moduleCode)
+            .input('type', sql.VarChar(15), data.type)
+            .input('batch', sql.Int, data.academicYear)
+            .execute('getDetailedAttendance', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        attendance: result.recordset
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-detailed-module-attendance', verifyToken, verifyAdmin, async (request, response) => {
+    const data = request.body;
+    console.log(data);
+
+    try {
+
+        const pool = await poolPromise;
+        pool.request()
+            .input('moduleCode', sql.Char(6), data.moduleCode)
+            .input('batch', sql.Int, data.academicYear)
+            .input('sessionID', sql.Int, data.sessionID)
+            .execute('getDetailedModuleAttendance', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        attendance: result.recordset
+                    });
+                }
+            });
+
+    } catch (error) {
+        console.log(error);
+        response.status(500).send(Errors.serverError);
+    }
+
+
+});
+
 router.post('/get-module-results-view', verifyToken, verifyAdmin, async (request, response) => {
 
     const moduleCode = request.body.moduleCode;
@@ -468,7 +561,16 @@ router.post('/get-module-results-view', verifyToken, verifyAdmin, async (request
                         console.log(result.recordset);
                         response.status(200).send({
                             status: true,
-                            results: result.recordset
+                            results: result.recordset.map(obj => {
+                                return {
+                                    studentIndex: obj.studentID,
+                                    academicYear: obj.academicYear,
+                                    dateHeld: new Date(obj.dateHeld),
+                                    mark: obj.mark,
+                                    grade: obj.grade,
+                                    semester: obj.semester
+                                };
+                            })
                         });
                     }
                 });
@@ -504,6 +606,42 @@ router.post('/get-student-results', verifyToken, verifyAdmin, async (request, re
         response.status(500).send(Errors.serverError);
     }
 
+});
+
+router.post('/get-student-attendance', verifyToken, verifyAdmin, async (request, response) => {
+
+    const studentID = request.body.studentID;
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('getAttendance', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(200).send(Errors.serverError);
+                } else {
+                    const attendance = result.recordset.map(obj => {
+                        return {
+                            moduleCode: obj.moduleCode,
+                            moduleName: obj.moduleName,
+                            type: obj.type,
+                            academicYear: obj.batch,
+                            attendance: (obj.total - obj.count) * 100 / obj.total
+                        }
+                    });
+                    console.log(attendance);
+                    response.status(200).send({
+                        status: true,
+                        attendance
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
 
 });
 
