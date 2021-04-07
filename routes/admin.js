@@ -683,14 +683,14 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
 });
 
 router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
-
-    const slipNo = request.slipNo;
+    console.log('request.body = ',request.body);
+    const slipNo = request.body.slipNo;
 
     try {
 
         const pool = await poolPromise;
         const result = await pool.request()
-            .input('slipNo', sql.Char(7), slipNo)
+            .input('slipNo', sql.Int, slipNo)
             .execute('viewPaymentDetails', (error, result) => {
                 if (error) {
                     console.log(error);

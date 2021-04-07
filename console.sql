@@ -1225,7 +1225,7 @@ GO
 CREATE TABLE Payment
 (
 	id   				INT IDENTITY(1,1) PRIMARY KEY,
-    slipNo 				CHAR(50) NOT NULL UNIQUE,
+    slipNo 				INT NOT NULL UNIQUE,
     amount 				INT,
 	paymentDate			DATE,
 	bank 				CHAR(50) NOT NULL,
@@ -1237,12 +1237,12 @@ CREATE TABLE Payment
 GO
 
 INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,confirmStatus)
-VALUES ('123456',250000,'2020-02-12','sampath','184061R',1),
-       ('123457',280000,'2020-02-18','Boc','204001F',1),
-       ('123458',450000,'2020-02-20','HNB','204002B',0),
-	   ('123459',200000,'2020-09-20','sampath','184061R',0),
-	   ('123460',170000,'2020-10-18','BOC','204001F',0),
-	   ('123461',170000,'2020-10-18','BOC','204001F',-1);
+VALUES (123456,250000,'2020-02-12','sampath','184061R',1),
+       (123457,280000,'2020-02-18','Boc','204001F',1),
+       (12345,450000,'2020-02-20','HNB','204002B',0),
+	   (123459,200000,'2020-09-20','sampath','184061R',0),
+	   (123460,170000,'2020-10-18','BOC','204001F',0),
+	   (123461,170000,'2020-10-18','BOC','204001F',-1);
 
 GO
 
@@ -1293,7 +1293,7 @@ WHERE P.studentID = @studentID
 GO
 
 -- Get Details of a payment
-CREATE PROCEDURE viewPaymentDetails @slipNo CHAR(50) AS
+CREATE PROCEDURE viewPaymentDetails @slipNo INT AS
 SELECT P.amount, P.slipNo, P.paymentDate, P.bank, S.studentID, U.title, S.fullName, S.academicYear, C.courseName
 FROM Payment P,
 	 Student S,
@@ -1325,7 +1325,7 @@ GO
 -- upload students payments to the system.
 
 CREATE PROCEDURE uploadPayment
-    @slipNo 	   INT,
+    @slipNo 	   CHAR(50),
     @amount 	   INT,
     @paymentDate   DATE,
     @bank          CHAR(50),
