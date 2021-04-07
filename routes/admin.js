@@ -513,12 +513,9 @@ router.post('/delete-exam', verifyToken, verifyAdmin, async (request, response) 
 });
 
 router.post('/register-student', verifyToken, verifyAdmin, async (request, response) => {
-
     const data = request.body.studentDetails;
 
     try {
-
-        console.log(data.academicYear);
         const year = (data.academicYear.toString().substring(2, 4));
 
         const pool = await poolPromise;
@@ -589,6 +586,8 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
 
 });
 
+
+
 router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, response) => {
     try {
         const pool = await poolPromise;
@@ -653,15 +652,15 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
                 .input('courseID', sql.Int, request.body.courseID)
                 .input('academicYear', sql.Int, request.body.academicYear)
                 .execute('getConfirmedPaymentsList', (error, result) => {
-                            if (error) {
-                                response.status(500).send(Errors.serverError);
-                            } else {
-                                response.status(200).send({
-                                    status: true,
-                                    results: result.recordsets
-                                });
-                            }
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            results: result.recordsets
                         });
+                    }
+                });
         } else if(type === 'pending') {
             await pool.request()
                 .execute('getPendingPaymentsList', (error, result) => {
@@ -680,6 +679,33 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
         console.error(result);
         response.status(200).send(Errors.serverError);
     }
+});
+
+router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (request, response) => {
+    console.log('request.body.studentID;=', request.body.studentID);
+    const studentID = request.body.studentID;;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('getStudentPayments', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordsets
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
 });
 
 router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
