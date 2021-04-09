@@ -622,6 +622,7 @@ router.post('/upload-payment', verifyToken, verifyAdmin, async (request, respons
             .input('bank', sql.VarChar(50), data.paymentForm.deposit.bankName)
             .input('slipNo', sql.Int, data.paymentForm.deposit.slipNumber)
             .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
+            .input('externalNote', sql.VarChar(50), data.paymentForm.deposit.externalNote)
             .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
             .input('paymentStatus', sql.Int, 1)
             .execute('uploadPayment', function (error, result) {

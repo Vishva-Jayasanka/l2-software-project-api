@@ -1232,11 +1232,12 @@ CREATE TABLE Payment
 	studentID 			CHAR(7) NOT NULL,
 	confirmStatus       INT DEFAULT 0,
 	description         CHAR(50),
+    externalNote CHAR(100),
     CONSTRAINT FK_paymentStudentID FOREIGN KEY (studentID) REFERENCES Student (studentID)
 )
 GO
 
-INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,confirmStatus)
+INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,externalNote,confirmStatus)
 VALUES (123456,250000,'2020-02-12','sampath','184061R',1),
        (123457,280000,'2020-02-18','Boc','204001F',1),
        (12345,450000,'2020-02-20','HNB','204002B',0),
@@ -1330,13 +1331,14 @@ CREATE PROCEDURE uploadPayment
     @paymentDate   DATE,
     @bank          CHAR(50),
     @studentID 	   CHAR(7),
+    @externalNote 	   CHAR(100),
 	@paymentStatus INT
 AS
     BEGIN TRANSACTION
    IF EXISTS(SELECT * FROM Student WHERE studentID = @studentID)
         BEGIN
-			INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,confirmStatus)
-			VALUES (@slipNo,  @amount, @paymentDate, @bank, @studentID, @paymentStatus )
+			INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,externalNote,confirmStatus)
+			VALUES (@slipNo,  @amount, @paymentDate, @bank, @studentID, @externalNote, @paymentStatus )
         END
 	ELSE
 		RETURN -1
