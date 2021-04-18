@@ -24,12 +24,10 @@ async function calculateGPA(username, next) {
                     if (error) {
                         next(false);
                     } else {
-                        console.log(result.recordsets);
                         next(true);
                     }
                 });
     } catch (error) {
-        console.log(error);
         next(false);
     }
 
@@ -45,7 +43,6 @@ router.post('/send-password-reset-email', async (request, response) => {
             .input('username', sql.Char(7), username)
             .query('SELECT email, firstName, lastName FROM Users WHERE username = @username', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     if (result.recordset[0]) {
@@ -77,7 +74,6 @@ router.post('/send-password-reset-email', async (request, response) => {
                 }
             });
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -130,7 +126,6 @@ router.post('/change-password', verifyToken, async (request, response) => {
         const payload = jwt.verify(data.token, 'verify_email');
         if (payload.hasOwnProperty('username') && payload.hasOwnProperty('timeSent') && payload.username === request.username) {
             if (Date.now() - payload.timeSent > 300000) {
-                console.log('a');
                 response.status(401).send({
                     status: false,
                     message: 'This email verification request has timed out'
@@ -146,7 +141,6 @@ router.post('/change-password', verifyToken, async (request, response) => {
                                 response.status(500).send(Errors.serverError);
                             } else {
                                 if (result.returnValue === -1) {
-                                    console.log('a');
                                     response.status(401).send(Errors.unauthorizedRequest);
                                 } else {
                                     response.status(200).send({
@@ -166,6 +160,103 @@ router.post('/change-password', verifyToken, async (request, response) => {
     } else {
         response.status(401).send(Errors.unauthorizedRequest);
     }
+});
+
+router.post('/change-password-current', verifyToken, async (request, response) => {
+
+    const data = request.body;
+
+    if (data.hasOwnProperty('currentPassword') && data.hasOwnProperty('newPassword') && data.hasOwnProperty('confirmPassword')) {
+
+        if (data.newPassword === data.confirmPassword) {
+            if (data.newPassword !== data.currentPassword) {
+                try {
+                    const pool = await poolPromise;
+                    await pool.request()
+                        .input('username', sql.Char(7), request.username)
+                        .input('newPassword', sql.VarChar(50), data.newPassword)
+                        .input('currentPassword', sql.VarChar(50), data.currentPassword)
+                        .execute('changePasswordWithCurrent', (error, result) => {
+                            if (error) {
+                                response.status(500).send(Errors.serverError);
+                            } else {
+                                if (result.returnValue === 0) {
+                                    response.status(200).send({
+                                        status: true,
+                                        message: 'Password updated successfully'
+                                    });
+                                } else {
+                                    response.status(401).send(Errors.unauthorizedRequest);
+                                }
+                            }
+                        });
+                } catch (error) {
+                    response.status(500).send(Errors.serverError);
+                }
+            } else {
+                response.status(400).send({
+                    status: false,
+                    message: 'New password cannot be the old password'
+                })
+            }
+        } else {
+            response.status(400).send({
+                status: false,
+                message: 'Passwords do not match'
+            });
+        }
+
+    } else {
+        response.status(400).send({
+            status: false,
+            message: 'Malformed request body'
+        });
+    }
+
+});
+
+router.post('/verify-recovery-email', verifyToken, async (request, response) => {
+
+    const token = request.body.token;
+    if (token) {
+        const payload = jwt.verify(token, 'verify_email');
+        if (payload.hasOwnProperty('username') && payload.hasOwnProperty('timeSent') && payload.username === request.username) {
+            if (Date.now() - payload.timeSent > 300000) {
+                response.status(401).send({
+                    status: false,
+                    message: 'This email verification request has timed out'
+                });
+            } else {
+                try {
+                    const pool = await poolPromise;
+                    await pool.request()
+                        .input('username', sql.Char(7), payload.username)
+                        .input('email', sql.VarChar(50), payload.email)
+                        .query('UPDATE Users SET recoveryEmail = @email, verified = 1 WHERE username = @username', (error, result) => {
+                            if (error) {
+                                response.status(500).send(Errors.serverError);
+                            } else {
+                                if (result.returnValue === -1) {
+                                    response.status(401).send(Errors.unauthorizedRequest);
+                                } else {
+                                    response.status(200).send({
+                                        status: true,
+                                        message: 'Password changed successfully'
+                                    });
+                                }
+                            }
+                        });
+                } catch (error) {
+                    response.status(500).send(Errors.serverError);
+                }
+            }
+        } else {
+            response.status(200).send(Errors.unauthorizedRequest);
+        }
+    } else {
+        response.status(401).send(Errors.unauthorizedRequest);
+    }
+
 });
 
 router.post('/login', async (request, response) => {
@@ -198,9 +289,10 @@ router.post('/login', async (request, response) => {
 
 router.post('/send-verification-email', verifyToken, async (request, response) => {
 
+
     const email = request.body.email;
 
-    if (email) {
+    if (!request.verified && email) {
 
         try {
             const pool = await poolPromise;
@@ -208,7 +300,7 @@ router.post('/send-verification-email', verifyToken, async (request, response) =
                 .input('username', sql.Char(7), request.username)
                 .input('email', sql.VarChar(50), email)
                 .query(
-                    'UPDATE Users SET email = @email WHERE username = @username; ' +
+                    'UPDATE Users SET recoveryEmail = @email WHERE username = @username; ' +
                     'SELECT username, firstName, lastName FROM Users WHERE username = @username',
                     (error, result) => {
                         if (error) {
@@ -222,7 +314,7 @@ router.post('/send-verification-email', verifyToken, async (request, response) =
                             }, 'verify_email');
                             user.email = email;
 
-                            emailVerification.sendVerificationEmail(user, (status) => {
+                            emailVerification.sendVerificationEmail(user, 'verification', (status) => {
                                 if (status) {
                                     response.status(200).send({
                                         status: true,
@@ -237,6 +329,50 @@ router.post('/send-verification-email', verifyToken, async (request, response) =
         } catch (error) {
             response.status(500).send(Errors.serverError);
         }
+    } else {
+        response.status(401).send(Errors.unauthorizedRequest);
+    }
+
+});
+
+router.post('/send-recovery-email-verification', verifyToken, async (request, response) => {
+
+    const email = request.body.email;
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('username', sql.Char(7), request.username)
+            .query('SELECT firstName, lastName FROM Users WHERE username = @username', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                    console.log(error);
+                } else {
+                    const user = result.recordset[0];
+                    user.token = jwt.sign({
+                        username: request.username,
+                        email: email,
+                        timeSent: Date.now()
+                    }, 'verify_email');
+                    user.email = email;
+                    emailVerification.sendVerificationEmail(user, 'change-recovery-email', (status) => {
+                        if (status) {
+                            response.status(200).send({
+                                status: true,
+                                message: 'Verification email sent'
+                            })
+                        } else {
+                            response.status(500).send(Errors.serverError);
+                        }
+                    });
+                }
+            });
+
+
+    } catch (error) {
+        console.log(error);
+        response.status(500).send(Errors.serverError);
     }
 
 });
@@ -416,8 +552,6 @@ router.get('/get-timetable/:username/:role', async (request, response) => {
                         return {
                             Id: session.lectureHourID,
                             Subject: session.moduleCode + ' ' + session.moduleName,
-                            // StartTime: new Date(2021, 2, 28, 8, 15),
-                            // EndTime: new Date(2021, 2, 28, 10, 15),
                             StartTime: new Date(session.startingTime),
                             EndTime: new Date(session.endingTime),
                             Description: session.type,
@@ -440,7 +574,6 @@ router.post('/get-user-details', verifyToken, async (request, response) => {
 
     const username = request.username;
     calculateGPA('184061R', (status) => {
-        console.log(status);
     });
 
     try {
@@ -451,7 +584,6 @@ router.post('/get-user-details', verifyToken, async (request, response) => {
             .input('roleID', sql.Int, request.role)
             .execute('getUserDetails', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -463,7 +595,6 @@ router.post('/get-user-details', verifyToken, async (request, response) => {
             });
 
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -528,7 +659,6 @@ router.post('/get-requests', verifyToken, async (request, response) => {
             .input('studentID', sql.Char(7), request.username)
             .execute('getRequests', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(200).send(Errors.serverError);
                 } else {
                     const requests = result.recordsets[0];
@@ -557,7 +687,6 @@ router.post('/get-academic-calenders', verifyToken, async (request, response) =>
         pool.request()
             .execute('getAcademicCalenders', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     const academicYears = result.recordsets[0];
@@ -577,8 +706,63 @@ router.post('/get-academic-calenders', verifyToken, async (request, response) =>
                 }
             });
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/update-user-data', verifyToken, async (request, response) => {
+
+    console.log(request.role);
+
+    const data = request.body;
+    console.log(data);
+    let query;
+
+    if (data.hasOwnProperty('email')) {
+        query = `UPDATE Users SET email = '${data.email}' WHERE username = '${request.username}'`
+    } else {
+        if (request.role === 1) {
+            if (data.hasOwnProperty('phone')) {
+                query = `UPDATE Admin SET mobile = '${data.phone}' WHERE adminID = '${request.username}'`
+            }
+        } else if (request.role === 2) {
+            if (data.hasOwnProperty('phone')) {
+                query = `UPDATE Teacher SET mobile = '${data.phone}' WHERE teacherID = '${request.username}'`
+            }
+        } else if (request.role === 3) {
+            if (data.hasOwnProperty('phone')) {
+                query = `UPDATE Student SET mobile = '${data.phone}' WHERE studentID = '${request.username}'`
+            } else if (data.hasOwnProperty('address')) {
+                query = `UPDATE Student SET address = '${data.address}' WHERE studentID = '${request.username}'`
+            }
+        }
+    }
+
+    if (query) {
+        try {
+
+            const pool = await poolPromise;
+            await pool.request()
+                .query(query, (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            message: 'Email updated successfully'
+                        });
+                    }
+                });
+
+        } catch (error) {
+            response.status(500).send(Errors.serverError);
+        }
+    } else {
+        response.status(400).send({
+            status: false,
+            message: 'Malformed request'
+        })
     }
 
 });

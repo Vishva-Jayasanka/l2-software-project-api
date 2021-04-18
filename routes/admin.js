@@ -419,8 +419,6 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
 
 router.post('/get-module-results', async (request, response) => {
 
-    console.log(request.body);
-
     try {
         const pool = await poolPromise;
         await pool.request()
@@ -433,7 +431,8 @@ router.post('/get-module-results', async (request, response) => {
                     if (result.recordsets.length === 2) {
                         response.status(200).send({
                             status: true,
-                            examID: result.recordsets[0].examID,
+                            dateHeld: result.recordsets[0][0].dateHeld,
+                            examID: result.recordsets[0][0].examID,
                             results: result.recordsets[1]
                         });
                     } else {
@@ -460,7 +459,6 @@ router.post('/get-module-attendance', verifyToken, verifyAdmin, async (request, 
             .input('moduleCode', sql.Char(6), moduleCode)
             .execute('getModuleAttendance', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(200).send(Errors.serverError);
                 } else {
                     const attendance = result.recordset.map(obj => {
@@ -479,7 +477,6 @@ router.post('/get-module-attendance', verifyToken, verifyAdmin, async (request, 
                 }
             })
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -514,7 +511,6 @@ router.post('/get-detailed-student-attendance', verifyToken, verifyAdmin, async 
 
 router.post('/get-detailed-module-attendance', verifyToken, verifyAdmin, async (request, response) => {
     const data = request.body;
-    console.log(data);
 
     try {
 
@@ -525,7 +521,6 @@ router.post('/get-detailed-module-attendance', verifyToken, verifyAdmin, async (
             .input('sessionID', sql.Int, data.sessionID)
             .execute('getDetailedModuleAttendance', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -536,7 +531,6 @@ router.post('/get-detailed-module-attendance', verifyToken, verifyAdmin, async (
             });
 
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -555,10 +549,8 @@ router.post('/get-module-results-view', verifyToken, verifyAdmin, async (request
             .query('SELECT E.academicYear, E.dateHeld, M.studentID, M.mark, M.grade FROM Exam E, Mark M WHERE E.moduleCode = @moduleCode AND M.examID = E.examID',
                 (error, result) => {
                     if (error) {
-                        console.log(error);
                         response.send(Errors.serverError);
                     } else {
-                        console.log(result.recordset);
                         response.status(200).send({
                             status: true,
                             results: result.recordset.map(obj => {
@@ -576,7 +568,6 @@ router.post('/get-module-results-view', verifyToken, verifyAdmin, async (request
                 });
 
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -619,7 +610,6 @@ router.post('/get-student-attendance', verifyToken, verifyAdmin, async (request,
             .input('studentID', sql.Char(7), studentID)
             .execute('getAttendance', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(200).send(Errors.serverError);
                 } else {
                     const attendance = result.recordset.map(obj => {
@@ -631,7 +621,6 @@ router.post('/get-student-attendance', verifyToken, verifyAdmin, async (request,
                             attendance: (obj.total - obj.count) * 100 / obj.total
                         }
                     });
-                    console.log(attendance);
                     response.status(200).send({
                         status: true,
                         attendance
@@ -1133,8 +1122,6 @@ router.post('/update-academic-calender', verifyToken, verifyAdmin, async (reques
             }
         }
 
-        console.log(tasks.rows);
-
         const pool = await poolPromise;
         await pool.request()
             .input('academicYears', academicYears)
@@ -1143,7 +1130,6 @@ router.post('/update-academic-calender', verifyToken, verifyAdmin, async (reques
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    console.log(result.recordset);
                     response.status(200).send({
                         status: true,
                         message: 'Academic Calender updated successfully'
@@ -1169,10 +1155,8 @@ router.post('/check-keyword', verifyToken, verifyAdmin, async (request, response
                 .input('moduleCode', sql.Char(6), keyword)
                 .execute('checkModule', (error, result) => {
                     if (error) {
-                        console.log(error);
                         response.status(500).send(Errors.serverError);
                     } else {
-                        console.log(result.recordset);
                         if (result.returnValue === 0) {
                             response.status(200).send({
                                 status: true,

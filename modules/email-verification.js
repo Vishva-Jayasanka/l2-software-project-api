@@ -3,7 +3,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'vishvajayasanka@gmail.com',
-        pass: 'Porsche911gt3rs'
+        pass: 'PaganiZonda760ls'
     }
 });
 
@@ -42,7 +42,7 @@ module.exports = {
         });
     },
 
-    sendVerificationEmail: function(user, callback) {
+    sendVerificationEmail: function(user, link, callback) {
         const mailOptions = {
             from: 'vishvajayasanka@gmail.com',
             to: user.email,
@@ -52,7 +52,7 @@ module.exports = {
                 <div style="text-align: center">
                     <h1>Hello, ${user.firstName + ' ' + user.lastName}.</h1>
                     <h2>Click below link to verify it's you.</h2>
-                    <a href="http://localhost:4200/auth/verification;token=${user.token};email=${user.email}" target="_blank" style="padding: 8px 12px; border: 1px solid #ED2939;border-radius: 2px;font-family: Helvetica, Arial, sans-serif;font-size: 14px;text-decoration: none; font-weight:bold; display: inline-block;">
+                    <a href="http://localhost:4200/auth/${link};token=${user.token};email=${user.email}" target="_blank" style="padding: 8px 12px; border: 1px solid #ED2939;border-radius: 2px;font-family: Helvetica, Arial, sans-serif;font-size: 14px;text-decoration: none; font-weight:bold; display: inline-block;">
                         Verify it's you             
                     </a>
                     <p>If you did not try to add your email address to lms, please ignore this.</p>
@@ -69,7 +69,7 @@ module.exports = {
                 return callback(true);
             }
         });
-    }
+    },
 
 }
 
