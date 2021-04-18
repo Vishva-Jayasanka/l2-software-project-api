@@ -48,4 +48,30 @@ router.post('/upload-payment', verifyToken, verifyStudent, async (request, respo
 
 });
 
+router.post('/get-student-payment-details', verifyToken, verifyStudent, async (request, response) => {
+    console.log('request.body.studentID;=', request.body.studentID);
+    const studentID = request.body.studentID;;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('getStudentPayments', (error, result) => {
+                if (error || result.returnValue === -1) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordsets,
+                    })
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
 module.exports = router;

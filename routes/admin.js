@@ -682,32 +682,7 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
     }
 });
 
-router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (request, response) => {
-    console.log('request.body.studentID;=', request.body.studentID);
-    const studentID = request.body.studentID;;
 
-    try {
-
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('studentID', sql.Char(7), studentID)
-            .execute('getStudentPayments', (error, result) => {
-                if (error) {
-                    console.log(error);
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    response.status(200).send({
-                        status: true,
-                        results: result.recordsets
-                    });
-                }
-            });
-
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
-    }
-
-});
 
 router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
     console.log('request.body = ',request.body);
