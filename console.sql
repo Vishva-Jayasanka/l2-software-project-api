@@ -1287,6 +1287,7 @@ FROM Payment P,
 	 Student S,
      Users U
 WHERE P.studentID = @studentID
+  AND P.confirmStatus = 1
   AND P.studentID = S.studentID
   AND S.StudentID = U.username
   ORDER BY P.paymentDate ASC
@@ -1351,3 +1352,51 @@ AS
 GO
 
 --EXEC uploadPayment '123463',180000,'2020-11-18','BOC','204002B',-1;
+
+--Delete payment detail
+CREATE PROCEDURE deletePayment @slipNo INT AS
+BEGIN TRANSACTION
+
+    IF EXISTS(SELECT *
+                  FROM Payment
+                  WHERE slipNo = @slipNo)
+            BEGIN
+
+                UPDATE Payment
+                SET confirmStatus= -1
+                WHERE slipNo = @slipNo
+                IF @@ROWCOUNT = 0 GOTO errorHandler
+			END
+    COMMIT TRANSACTION
+    RETURN 0
+
+    errorHandler:
+       PRINT 'Transaction failed'
+       ROLLBACK TRANSACTION
+       RETURN -1
+GO
+
+--Edit payment detail
+CREATE PROCEDURE editPayment @slipNo INT, @amount INT, @paymentDate Date, @bank Char(20)  AS
+BEGIN TRANSACTION
+
+    IF EXISTS(SELECT *
+                  FROM Payment
+                  WHERE slipNo = @slipNo)
+            BEGIN
+
+                UPDATE Payment
+                SET amount= @amount,
+                    paymentDate= @paymentDate,
+                    bank= @bank
+                WHERE slipNo = @slipNo
+                IF @@ROWCOUNT = 0 GOTO errorHandler
+			END
+    COMMIT TRANSACTION
+    RETURN 0
+
+    errorHandler:
+       PRINT 'Transaction failed'
+       ROLLBACK TRANSACTION
+       RETURN -1
+GO
