@@ -1282,7 +1282,7 @@ GO
 
 -- Get payment history of a student 
 CREATE PROCEDURE getStudentPayments @studentID CHAR(50) AS
-SELECT P.amount, P.slipNo, P.paymentDate, P.confirmStatus, S.studentID, U.title, S.fullName
+SELECT P.amount, P.slipNo, P.paymentDate, P.confirmStatus, P.bank, S.studentID, U.title, S.fullName
 FROM Payment P,
 	 Student S,
      Users U
@@ -1293,6 +1293,7 @@ WHERE P.studentID = @studentID
   ORDER BY P.paymentDate ASC
 
 GO
+
 
 -- Get Details of a payment
 CREATE PROCEDURE viewPaymentDetails @slipNo INT AS

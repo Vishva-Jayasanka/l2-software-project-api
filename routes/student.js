@@ -48,9 +48,9 @@ router.post('/upload-payment', verifyToken, verifyStudent, async (request, respo
 
 });
 
-router.post('/get-student-payment-details', verifyToken, verifyStudent, async (request, response) => {
-    console.log('request.body.studentID;=', request.body.studentID);
-    const studentID = request.body.studentID;;
+router.post('/get-students-payment-details', verifyToken, verifyStudent, async (request, response) => {
+    console.log('request.username=', request.username);
+    const studentID = request.body.username;
 
     try {
 

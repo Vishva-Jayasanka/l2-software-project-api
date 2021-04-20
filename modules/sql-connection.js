@@ -5,7 +5,7 @@ const config = {
     instance: 'MSSQLSERVER',
     user: 'onali',
     password: '123456',
-    database: 'msdb',
+    database: 'imsdb',
     options: {
         enableArithAbort: true,
         encrypt: false
