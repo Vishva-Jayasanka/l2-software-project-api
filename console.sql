@@ -1237,15 +1237,15 @@ CREATE TABLE Payment
 )
 GO
 
-INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,externalNote,confirmStatus)
-VALUES (123456,250000,'2020-02-12','sampath','184061R',1),
-       (123457,280000,'2020-02-18','Boc','204001F',1),
-       (12345,450000,'2020-02-20','HNB','204002B',0),
-	   (123459,200000,'2020-09-20','sampath','184061R',0),
-	   (123460,170000,'2020-10-18','BOC','204001F',0),
-	   (123461,170000,'2020-10-18','BOC','204001F',-1);
-
-GO
+--INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,externalNote,confirmStatus)
+--VALUES (123456,250000,'2020-02-12','sampath','184061R',1),
+--       (123457,280000,'2020-02-18','Boc','204001F',1),
+--       (12345,450000,'2020-02-20','HNB','204002B',0),
+--	   (123459,200000,'2020-09-20','sampath','184061R',0),
+--	   (123460,170000,'2020-10-18','BOC','204001F',0),
+--	   (123461,170000,'2020-10-18','BOC','204001F',-1);
+--
+--GO
 
 
 -- Get confirmed payment lists filter using . 0 for pending payments 1 for confirmed payments, -1 for rejected payments.
