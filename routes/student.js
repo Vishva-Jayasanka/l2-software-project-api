@@ -50,7 +50,7 @@ router.post('/upload-payment', verifyToken, verifyStudent, async (request, respo
 
 router.post('/get-students-payment-details', verifyToken, verifyStudent, async (request, response) => {
     console.log('request.username=', request.username);
-    const studentID = request.body.username;
+    const studentID = request.username;
 
     try {
 
@@ -65,6 +65,7 @@ router.post('/get-students-payment-details', verifyToken, verifyStudent, async (
                         status: true,
                         results: result.recordsets,
                     })
+                    console.log('result.recordsets=', result.recordsets);
                 }
             });
 
