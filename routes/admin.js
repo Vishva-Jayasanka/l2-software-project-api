@@ -513,12 +513,9 @@ router.post('/delete-exam', verifyToken, verifyAdmin, async (request, response) 
 });
 
 router.post('/register-student', verifyToken, verifyAdmin, async (request, response) => {
-
     const data = request.body.studentDetails;
 
     try {
-
-        console.log(data.academicYear);
         const year = (data.academicYear.toString().substring(2, 4));
 
         const pool = await poolPromise;
@@ -589,6 +586,8 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
 
 });
 
+
+
 router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, response) => {
     try {
         const pool = await poolPromise;
@@ -623,6 +622,7 @@ router.post('/upload-payment', verifyToken, verifyAdmin, async (request, respons
             .input('bank', sql.VarChar(50), data.paymentForm.deposit.bankName)
             .input('slipNo', sql.Int, data.paymentForm.deposit.slipNumber)
             .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
+            .input('externalNote', sql.VarChar(50), data.paymentForm.deposit.externalNote)
             .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
             .input('paymentStatus', sql.Int, 1)
             .execute('uploadPayment', function (error, result) {
@@ -653,15 +653,15 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
                 .input('courseID', sql.Int, request.body.courseID)
                 .input('academicYear', sql.Int, request.body.academicYear)
                 .execute('getConfirmedPaymentsList', (error, result) => {
-                            if (error) {
-                                response.status(500).send(Errors.serverError);
-                            } else {
-                                response.status(200).send({
-                                    status: true,
-                                    results: result.recordsets
-                                });
-                            }
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            results: result.recordsets
                         });
+                    }
+                });
         } else if(type === 'pending') {
             await pool.request()
                 .execute('getPendingPaymentsList', (error, result) => {
@@ -682,15 +682,17 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
     }
 });
 
-router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
 
-    const slipNo = request.slipNo;
+
+router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
+    console.log('request.body = ',request.body);
+    const slipNo = request.body.slipNo;
 
     try {
 
         const pool = await poolPromise;
         const result = await pool.request()
-            .input('slipNo', sql.Char(7), slipNo)
+            .input('slipNo', sql.Int, slipNo)
             .execute('viewPaymentDetails', (error, result) => {
                 if (error) {
                     console.log(error);
@@ -728,6 +730,32 @@ router.post('/upload-request', verifyToken, verifyAdmin, async (request, respons
         const pool = await poolPromise;
     } catch (exception) {
         response.status(200).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (request, response) => {
+    console.log('request.body.studentID;=', request.body.studentID);
+    const studentID = request.body.studentID;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('getStudentPayments', (error, result) => {
+                if (error || result.returnValue === -1) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordsets,
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
     }
 
 });
@@ -796,5 +824,61 @@ router.post('/check-if-results-uploaded', verifyToken, verifyAdmin, async (reque
     }
 
 });
+
+router.post('/delete-payment', verifyToken, verifyAdmin, async (request, response) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('slipNo', sql.Int, request.body.slipNo)
+            .execute('deletePayment', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.returnValue === 0) {
+                        response.status(200).send({
+                            status: true,
+                            message: 'Payment deleted successfully'
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: false,
+                            message: 'Could not delete the Payment'
+                        });
+                    }
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+});
+
+router.post('/edit-payment', verifyToken, verifyAdmin, async (request, response) => {
+    const data = request.body;
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('slipNo', sql.Int, data.slipNumber)
+            .input('amount', sql.Int, data.amountPaid)
+            .input('paymentDate', sql.Date, data.paymentDate)
+            .input('bank', sql.Char(20), data.bankName)
+            .execute('editPayment', (error, result) => {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        message: 'Payment updated successfully'
+                    });
+                }
+            });
+    } catch (error) {
+        console.error(error);
+        response.status(500).send(Errors.serverError);
+    }
+});
+
 
 module.exports = router;

@@ -1225,26 +1225,27 @@ GO
 CREATE TABLE Payment
 (
 	id   				INT IDENTITY(1,1) PRIMARY KEY,
-    slipNo 				CHAR(50) NOT NULL UNIQUE,
+    slipNo 				INT NOT NULL UNIQUE,
     amount 				INT,
 	paymentDate			DATE,
 	bank 				CHAR(50) NOT NULL,
 	studentID 			CHAR(7) NOT NULL,
 	confirmStatus       INT DEFAULT 0,
 	description         CHAR(50),
+    externalNote CHAR(100),
     CONSTRAINT FK_paymentStudentID FOREIGN KEY (studentID) REFERENCES Student (studentID)
 )
 GO
 
-INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,confirmStatus)
-VALUES ('123456',250000,'2020-02-12','sampath','184061R',1),
-       ('123457',280000,'2020-02-18','Boc','204001F',1),
-       ('123458',450000,'2020-02-20','HNB','204002B',0),
-	   ('123459',200000,'2020-09-20','sampath','184061R',0),
-	   ('123460',170000,'2020-10-18','BOC','204001F',0),
-	   ('123461',170000,'2020-10-18','BOC','204001F',-1);
-
-GO
+--INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,externalNote,confirmStatus)
+--VALUES (123456,250000,'2020-02-12','sampath','184061R',1),
+--       (123457,280000,'2020-02-18','Boc','204001F',1),
+--       (12345,450000,'2020-02-20','HNB','204002B',0),
+--	   (123459,200000,'2020-09-20','sampath','184061R',0),
+--	   (123460,170000,'2020-10-18','BOC','204001F',0),
+--	   (123461,170000,'2020-10-18','BOC','204001F',-1);
+--
+--GO
 
 
 -- Get confirmed payment lists filter using . 0 for pending payments 1 for confirmed payments, -1 for rejected payments.
@@ -1281,19 +1282,21 @@ GO
 
 -- Get payment history of a student 
 CREATE PROCEDURE getStudentPayments @studentID CHAR(50) AS
-SELECT P.amount, P.slipNo, P.paymentDate, P.confirmStatus, S.studentID, U.title, S.fullName
+SELECT P.amount, P.slipNo, P.paymentDate, P.confirmStatus, P.bank, S.studentID, U.title, S.fullName
 FROM Payment P,
 	 Student S,
      Users U
 WHERE P.studentID = @studentID
+  AND P.confirmStatus = 1
   AND P.studentID = S.studentID
   AND S.StudentID = U.username
   ORDER BY P.paymentDate ASC
 
 GO
 
+
 -- Get Details of a payment
-CREATE PROCEDURE viewPaymentDetails @slipNo CHAR(50) AS
+CREATE PROCEDURE viewPaymentDetails @slipNo INT AS
 SELECT P.amount, P.slipNo, P.paymentDate, P.bank, S.studentID, U.title, S.fullName, S.academicYear, C.courseName
 FROM Payment P,
 	 Student S,
@@ -1325,18 +1328,19 @@ GO
 -- upload students payments to the system.
 
 CREATE PROCEDURE uploadPayment
-    @slipNo 	   INT,
+    @slipNo 	   CHAR(50),
     @amount 	   INT,
     @paymentDate   DATE,
     @bank          CHAR(50),
     @studentID 	   CHAR(7),
+    @externalNote 	   CHAR(100),
 	@paymentStatus INT
 AS
     BEGIN TRANSACTION
    IF EXISTS(SELECT * FROM Student WHERE studentID = @studentID)
         BEGIN
-			INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,confirmStatus)
-			VALUES (@slipNo,  @amount, @paymentDate, @bank, @studentID, @paymentStatus )
+			INSERT INTO Payment (slipNo,amount,paymentDate,bank,studentID,externalNote,confirmStatus)
+			VALUES (@slipNo,  @amount, @paymentDate, @bank, @studentID, @externalNote, @paymentStatus )
         END
 	ELSE
 		RETURN -1
@@ -1349,3 +1353,51 @@ AS
 GO
 
 --EXEC uploadPayment '123463',180000,'2020-11-18','BOC','204002B',-1;
+
+--Delete payment detail
+CREATE PROCEDURE deletePayment @slipNo INT AS
+BEGIN TRANSACTION
+
+    IF EXISTS(SELECT *
+                  FROM Payment
+                  WHERE slipNo = @slipNo)
+            BEGIN
+
+                UPDATE Payment
+                SET confirmStatus= -1
+                WHERE slipNo = @slipNo
+                IF @@ROWCOUNT = 0 GOTO errorHandler
+			END
+    COMMIT TRANSACTION
+    RETURN 0
+
+    errorHandler:
+       PRINT 'Transaction failed'
+       ROLLBACK TRANSACTION
+       RETURN -1
+GO
+
+--Edit payment detail
+CREATE PROCEDURE editPayment @slipNo INT, @amount INT, @paymentDate Date, @bank Char(20)  AS
+BEGIN TRANSACTION
+
+    IF EXISTS(SELECT *
+                  FROM Payment
+                  WHERE slipNo = @slipNo)
+            BEGIN
+
+                UPDATE Payment
+                SET amount= @amount,
+                    paymentDate= @paymentDate,
+                    bank= @bank
+                WHERE slipNo = @slipNo
+                IF @@ROWCOUNT = 0 GOTO errorHandler
+			END
+    COMMIT TRANSACTION
+    RETURN 0
+
+    errorHandler:
+       PRINT 'Transaction failed'
+       ROLLBACK TRANSACTION
+       RETURN -1
+GO

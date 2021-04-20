@@ -489,6 +489,8 @@ router.post('/get-notifications', verifyToken, async (request, response) => {
 
 });
 
+
+
 router.post('/update-notification-status', verifyToken, async (request, response) => {
     const received = request.body.received;
     const receiverID = request.username;
