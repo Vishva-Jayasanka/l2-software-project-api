@@ -165,6 +165,7 @@ router.post('/change-password', verifyToken, async (request, response) => {
 router.post('/change-password-current', verifyToken, async (request, response) => {
 
     const data = request.body;
+    console.log(request.body);
 
     if (data.hasOwnProperty('currentPassword') && data.hasOwnProperty('newPassword') && data.hasOwnProperty('confirmPassword')) {
 

@@ -48,7 +48,7 @@ module.exports = {
                                     });
 
                                     wsServer.clients.forEach(client => {
-                                        if (client !== socket && client.readyState === ws.OPEN) {
+                                        if (client.readyState === ws.OPEN) {
                                             if (msg.recipients.find(recipient => recipient === client.details.username) || msg.recipients.find(recipient => recipient.toString() === '20' + client.details.username.substring(0, 2))) {
                                                 client.send(messageToSend);
                                             }

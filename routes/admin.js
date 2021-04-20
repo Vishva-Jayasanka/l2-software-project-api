@@ -467,7 +467,7 @@ router.post('/get-module-attendance', verifyToken, verifyAdmin, async (request, 
                             dateHeld: obj.date,
                             sessionID: obj.sessionID,
                             academicYear: obj.batch,
-                            attendance: (obj.total - obj.count) * 100 / obj.total
+                            attendance: Math.round((obj.total - obj.count) * 100 / obj.total)
                         }
                     });
                     response.status(200).send({
@@ -618,7 +618,7 @@ router.post('/get-student-attendance', verifyToken, verifyAdmin, async (request,
                             moduleName: obj.moduleName,
                             type: obj.type,
                             academicYear: obj.batch,
-                            attendance: (obj.total - obj.count) * 100 / obj.total
+                            attendance: Math.round((obj.total - obj.count) * 100 / obj.total)
                         }
                     });
                     response.status(200).send({
@@ -1201,6 +1201,36 @@ router.post('/check-keyword', verifyToken, verifyAdmin, async (request, response
 
     } catch (error) {
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/delete-message', verifyToken, verifyAdmin, async (request, response) => {
+
+    const messageID = request.body.messageID;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('notificationID', sql.Int, messageID)
+            .input('username', sql.Char(7), request.username)
+            .execute('deleteNotification', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(200).send(Errors.serverError);
+                } else {
+                    if (result.returnValue !== 0) {
+                        response.status(401).send(Errors.unauthorizedRequest);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            message: 'Notification deleted successfully'
+                        });
+                    }
+                }
+            });
+    } catch (error) {
+        response.status(200).send(Errors.serverError);
     }
 
 
