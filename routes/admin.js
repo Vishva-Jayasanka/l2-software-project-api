@@ -926,6 +926,7 @@ router.post('/enroll-student', verifyToken, verifyAdmin, async (request, respons
         await pool.request()
             .input('studentID', sql.Char(7), enrollmentForm.studentID)
             .input('semester', sql.Int, enrollmentForm.semester)
+            .input('academicYear', sql.Int, enrollmentForm.academicYear)
             .input('modules', modules)
             .execute('enrollStudent', (error, result) => {
                 if (error) {

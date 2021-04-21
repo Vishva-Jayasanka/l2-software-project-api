@@ -3,7 +3,6 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 const fs = require('fs');
-const convert = require('xml-js')
 
 const Module = require('../models/module');
 const LectureHour = require('../models/lecture-hour');
@@ -11,27 +10,8 @@ const verifyToken = require('../modules/user-verification').VerifyToken;
 
 const Errors = require('../errors/errors');
 const emailVerification = require('../modules/email-verification');
+const {calculateGPA} = require("../modules/caculate-gpa");
 const {poolPromise} = require('../modules/sql-connection');
-
-async function calculateGPA(username, next) {
-
-    try {
-        const pool = await poolPromise;
-        await pool.request()
-            .input('username', sql.Char(7), username)
-            .query('Select E.moduleCode, Ma.mark, M.credits, E.academicYear FROM Module M, exam E, Mark Ma WHERE Ma.studentID = @username AND Ma.examID = E.examID AND E.moduleCode = M.moduleCode',
-                (error, result) => {
-                    if (error) {
-                        next(false);
-                    } else {
-                        next(true);
-                    }
-                });
-    } catch (error) {
-        next(false);
-    }
-
-}
 
 router.post('/send-password-reset-email', async (request, response) => {
 
@@ -478,9 +458,31 @@ router.post('/get-results', verifyToken, async (request, response) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
+                    const moduleCodes = new Set();
+                    for (const examResult of result.recordset) {
+                        moduleCodes.add(examResult.moduleCode);
+                    }
+
+                    const examResults = [];
+                    for (const moduleCode of moduleCodes) {
+                        const temp = result.recordset.filter(obj => obj.moduleCode === moduleCode);
+                        if (temp.length > 1) {
+                            temp.sort((a, b) => a.academicYear < b.academicYear ? 1 : -1);
+                            for (let i = 0; i < temp.length - 1; i++) {
+                                if (temp[i].mark > 54) {
+                                    temp[i].grade = 'C'
+                                }
+                            }
+                        }
+                        for (let obj of temp) {
+                            delete obj.mark;
+                            examResults.push(obj);
+                        }
+                    }
+
                     response.status(200).send({
                         status: true,
-                        results: result.recordset
+                        results: examResults
                     });
                 }
             });
@@ -574,8 +576,9 @@ router.get('/get-timetable/:username/:role', async (request, response) => {
 router.post('/get-user-details', verifyToken, async (request, response) => {
 
     const username = request.username;
-    calculateGPA('184061R', (status) => {
-    });
+
+    let gpa;
+    await calculateGPA(username, value => gpa = value);
 
     try {
 
@@ -587,11 +590,13 @@ router.post('/get-user-details', verifyToken, async (request, response) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    response.status(200).send({
+                    const res = {
                         status: true,
                         details: result.recordsets[0][0],
                         educationQualifications: result.recordsets[1]
-                    });
+                    }
+                    res.details.currentGPA = gpa;
+                    response.status(200).send(res);
                 }
             });
 
@@ -764,6 +769,28 @@ router.post('/update-user-data', verifyToken, async (request, response) => {
             status: false,
             message: 'Malformed request'
         })
+    }
+
+});
+
+router.post('/get-academic-years', verifyToken, async (request, response) => {
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .query('SELECT * FROM AcademicCalender', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    const academicYears = result.recordset.map(obj => obj.academicYear);
+                    response.status(200).send({
+                        status: true,
+                        academicYears: academicYears
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
     }
 
 });
