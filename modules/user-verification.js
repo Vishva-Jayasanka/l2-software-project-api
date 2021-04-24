@@ -35,7 +35,7 @@ module.exports = {
                                     request.verified = result.recordset[0].verified
                                     next();
                                 } else if (result.returnValue === 2) {
-                                    response.status(408).send({
+                                    response.status(440).send({
                                         status: false,
                                         message: 'Your session has times out'
                                     });

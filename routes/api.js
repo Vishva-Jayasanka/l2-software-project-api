@@ -145,7 +145,6 @@ router.post('/change-password', verifyToken, async (request, response) => {
 router.post('/change-password-current', verifyToken, async (request, response) => {
 
     const data = request.body;
-    console.log(request.body);
 
     if (data.hasOwnProperty('currentPassword') && data.hasOwnProperty('newPassword') && data.hasOwnProperty('confirmPassword')) {
 
@@ -259,7 +258,6 @@ router.post('/login', async (request, response) => {
                             role: user.roleName,
                             time
                         }, 'secret_key');
-                        console.log(user.token);
                         pool.request()
                             .input('username', sql.Char(7), userData.username)
                             .input('token', sql.VarChar(300), user.token)
@@ -344,7 +342,6 @@ router.post('/send-recovery-email-verification', verifyToken, async (request, re
             .query('SELECT firstName, lastName FROM Users WHERE username = @username', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
-                    console.log(error);
                 } else {
                     const user = result.recordset[0];
                     user.token = jwt.sign({
@@ -368,7 +365,6 @@ router.post('/send-recovery-email-verification', verifyToken, async (request, re
 
 
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -383,7 +379,6 @@ router.post('/get-modules', verifyToken, async (request, response) => {
             .input('role', sql.Int, request.role)
             .execute('getModules', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -397,7 +392,6 @@ router.post('/get-modules', verifyToken, async (request, response) => {
                 }
             });
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 });
@@ -737,10 +731,8 @@ router.post('/get-academic-calenders', verifyToken, async (request, response) =>
 
 router.post('/update-user-data', verifyToken, async (request, response) => {
 
-    console.log(request.role);
 
     const data = request.body;
-    console.log(data);
     let query;
 
     if (data.hasOwnProperty('email')) {

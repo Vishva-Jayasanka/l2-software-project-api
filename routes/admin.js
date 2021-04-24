@@ -4,6 +4,7 @@ const sql = require('mssql');
 const fs = require('fs');
 
 const Errors = require('../errors/errors');
+const {calculateGPA} = require("../modules/caculate-gpa");
 const verifyToken = require('../modules/user-verification').VerifyToken;
 const {poolPromise} = require('../modules/sql-connection');
 
@@ -1428,11 +1429,15 @@ router.post('/get-student-details', verifyToken, verifyAdmin, async (request, re
                             profilePicture = fs.readFileSync(`./profile-pictures/${studentID}.png`, {encoding: 'base64'});
                         } catch (Ignore) {
                         }
-                        response.status(200).send({
-                            status: true,
-                            details: result.recordsets[0][0],
-                            educationQualifications: result.recordsets[1],
-                            profilePicture
+                        const data = result.recordsets[0][0];
+                        data.currentGPA = calculateGPA(studentID, gpa => {
+                            data.currentGPA = gpa
+                            response.status(200).send({
+                                status: true,
+                                details: data,
+                                educationQualifications: result.recordsets[1],
+                                profilePicture
+                            });
                         });
                     } else {
                         response.status(400).send({
