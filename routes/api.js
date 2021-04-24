@@ -520,7 +520,7 @@ router.post('/upload-profile-picture', verifyToken, async (request, response) =>
 router.post('/get-profile-picture', verifyToken, async (request, response) => {
 
     try {
-        const image = fs.readFileSync('./profile-pictures/' + request.username + '.png', {encoding: 'base64'});
+        const image = fs.readFileSync(`./profile-pictures/${request.username}.png`, {encoding: 'base64'});
         response.status(200).send({
             status: true,
             profilePicture: image
