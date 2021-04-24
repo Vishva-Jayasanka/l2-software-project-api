@@ -16,7 +16,7 @@ module.exports = {
     sendPasswordResetEmail: function (user, callback) {
         const mailOptions = {
             from: 'vishvajayasanka@gmail.com',
-            to: user.email,
+            to: user.recoveryEmail,
             subject: 'IMS Password Reset',
             html:
                 `

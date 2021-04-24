@@ -21,7 +21,7 @@ router.post('/send-password-reset-email', async (request, response) => {
         const pool = await poolPromise;
         await pool.request()
             .input('username', sql.Char(7), username)
-            .query('SELECT email, firstName, lastName FROM Users WHERE username = @username', (error, result) => {
+            .query('SELECT recoveryEmail, firstName, lastName FROM Users WHERE username = @username', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
@@ -244,7 +244,7 @@ router.post('/login', async (request, response) => {
     let userData = request.body;
     try {
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('username', sql.Char(7), userData.username)
             .input('password', sql.VarChar(20), userData.password)
             .execute('checkUserCredentials', (error, result) => {
@@ -253,8 +253,24 @@ router.post('/login', async (request, response) => {
                 } else {
                     if (result.returnValue === 1) {
                         let user = result.recordset[0];
-                        user.token = jwt.sign({subject: user.username, role: user.roleName}, 'secret_key');
-                        response.status(200).send(user);
+                        let time = +new Date()
+                        user.token = jwt.sign({
+                            subject: user.username,
+                            role: user.roleName,
+                            time
+                        }, 'secret_key');
+                        console.log(user.token);
+                        pool.request()
+                            .input('username', sql.Char(7), userData.username)
+                            .input('token', sql.VarChar(300), user.token)
+                            .input('lastActive', sql.BigInt, time)
+                            .execute('changeActiveStatus', (error, result) => {
+                                if (error) {
+                                    response.send(Errors.serverError);
+                                } else {
+                                    response.status(200).send(user);
+                                }
+                            });
                     } else {
                         response.status(401).send({
                             status: false,
@@ -367,6 +383,7 @@ router.post('/get-modules', verifyToken, async (request, response) => {
             .input('role', sql.Int, request.role)
             .execute('getModules', (error, result) => {
                 if (error) {
+                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -380,6 +397,7 @@ router.post('/get-modules', verifyToken, async (request, response) => {
                 }
             });
     } catch (error) {
+        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 });

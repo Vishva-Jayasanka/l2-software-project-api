@@ -23,6 +23,8 @@ module.exports = {
                     const pool = await poolPromise;
                     await pool.request()
                         .input('username', sql.Char(7), payload.subject)
+                        .input('token', sql.VarChar(300), token)
+                        .input('time', sql.BigInt, +new Date())
                         .execute('checkValidity', (error, result) => {
                             if (error) {
                                 return response.status(500).send(Errors.serverError);
@@ -32,6 +34,11 @@ module.exports = {
                                     request.role = result.recordset[0].roleID;
                                     request.verified = result.recordset[0].verified
                                     next();
+                                } else if (result.returnValue === 2) {
+                                    response.status(408).send({
+                                        status: false,
+                                        message: 'Your session has times out'
+                                    });
                                 } else {
                                     return response.status(401).send(Errors.unauthorizedRequest);
                                 }
