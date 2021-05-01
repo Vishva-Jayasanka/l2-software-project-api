@@ -11,6 +11,7 @@ const _ = require('lodash');
 
 const PORT = process.env.PORT || 3000;
 
+const auth = require('./routes/auth');
 const api = require('./routes/api');
 const admin = require('./routes/admin');
 const teacher = require('./routes/teacher');
@@ -20,7 +21,6 @@ const app = express();
 app.use(fileUpload({
     createParentPath: true
 }));
-app.use(express.static('profile-pictures'));
 
 app.use(cors());
 
@@ -31,6 +31,8 @@ app.use(function (request, response, next) {
     next();
 });
 
+app.use('/profile-pictures', express.static(__dirname + '\\profile-pictures'));
+
 app.use(bodyParser.json({limit: '2mb'}));
 
 app.use(bodyParser.urlencoded({
@@ -39,6 +41,7 @@ app.use(bodyParser.urlencoded({
 
 app.use(morgan('dev'));
 
+app.use('/auth', auth);
 app.use('/api', api);
 app.use('/admin', admin);
 app.use('/teacher', teacher);

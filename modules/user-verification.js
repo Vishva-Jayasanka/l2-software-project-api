@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 
 const Errors = require('../errors/errors');
-const User = require('../models/user');
 const {poolPromise} = require('./sql-connection');
 
 module.exports = {

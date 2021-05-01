@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const sql = require('mssql');
 const fs = require('fs');
+const bcrypt = require('bcrypt');
 
 const Errors = require('../errors/errors');
+const {hashPassword} = require("../modules/validate-password");
 const {calculateGPA} = require("../modules/caculate-gpa");
 const verifyToken = require('../modules/user-verification').VerifyToken;
 const {poolPromise} = require('../modules/sql-connection');
@@ -726,39 +728,47 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                         qualifications.rows.add(record.degree, record.institute, record.graduationDate, record.grade);
                     }
 
-                    const result1 = pool.request()
-                        .input('studentID', sql.Char(7), studentID)
-                        .input('courseID', sql.Int, data.courseName)
-                        .input('academicYear', sql.Int, data.academicYear)
-                        .input('fullName', sql.VarChar(100), data.name.fullName)
-                        .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
-                        .input('firstName', sql.VarChar(20), name[0])
-                        .input('lastName', sql.VarChar(20), name[1])
-                        .input('address', sql.VarChar(255), data.address.permanentAddress)
-                        .input('district', sql.Char(5), data.address.district)
-                        .input('province', sql.Char(4), data.address.province)
-                        .input('dateOfBirth', sql.Date, data.dateOfBirth)
-                        .input('race', sql.VarChar(15), data.race)
-                        .input('religion', sql.VarChar(15), data.religion)
-                        .input('gender', sql.Char(1), data.gender)
-                        .input('nic', sql.VarChar(12), data.nic)
-                        .input('email', sql.VarChar(50), data.contactDetails.email)
-                        .input('mobile', sql.VarChar(12), data.contactDetails.mobile)
-                        .input('home', sql.VarChar(12), data.contactDetails.home)
-                        .input('designation', sql.VarChar(50), data.employment.designation)
-                        .input('employer', sql.VarChar(50), data.employment.employer)
-                        .input('company', sql.VarChar(50), data.employment.company)
-                        .input('educationQualifications', qualifications)
-                        .execute('registerStudent', (error, result) => {
-                            if (error) {
-                                response.status(500).send(Errors.serverError);
-                            } else {
-                                response.status(200).send({
-                                    status: true,
-                                    message: 'Student registered successfully'
+                    hashPassword(data.nic, (error, hash) => {
+                        if (error) {
+                            response.status(500).send(Errors.serverError);
+                        } else {
+                            pool.request()
+                                .input('studentID', sql.Char(7), studentID)
+                                .input('password', sql.VarChar(300), hash)
+                                .input('courseID', sql.Int, data.courseName)
+                                .input('academicYear', sql.Int, data.academicYear)
+                                .input('fullName', sql.VarChar(100), data.name.fullName)
+                                .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
+                                .input('firstName', sql.VarChar(20), name[0])
+                                .input('lastName', sql.VarChar(20), name[1])
+                                .input('address', sql.VarChar(255), data.address.permanentAddress)
+                                .input('district', sql.Char(5), data.address.district)
+                                .input('province', sql.Char(4), data.address.province)
+                                .input('dateOfBirth', sql.Date, data.dateOfBirth)
+                                .input('race', sql.VarChar(15), data.race)
+                                .input('religion', sql.VarChar(15), data.religion)
+                                .input('gender', sql.Char(1), data.gender)
+                                .input('nic', sql.VarChar(12), data.nic)
+                                .input('email', sql.VarChar(50), data.contactDetails.email)
+                                .input('mobile', sql.VarChar(12), data.contactDetails.mobile)
+                                .input('home', sql.VarChar(12), data.contactDetails.home)
+                                .input('designation', sql.VarChar(50), data.employment.designation)
+                                .input('employer', sql.VarChar(50), data.employment.employer)
+                                .input('company', sql.VarChar(50), data.employment.company)
+                                .input('educationQualifications', qualifications)
+                                .execute('registerStudent', (error, result) => {
+                                    if (error) {
+                                        response.status(500).send(Errors.serverError);
+                                    } else {
+                                        response.status(200).send({
+                                            status: true,
+                                            message: 'Student registered successfully'
+                                        });
+                                    }
                                 });
-                            }
-                        });
+
+                        }
+                    });
                 }
             });
 
@@ -1268,7 +1278,7 @@ router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (req
 });
 
 router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
-    console.log('request.body = ',request.body);
+    console.log('request.body = ', request.body);
     const slipNo = request.body.slipNo;
 
     try {
@@ -1296,7 +1306,7 @@ router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, re
 
 router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, response) => {
     const type = request.body.type;
-    try{
+    try {
         const pool = await poolPromise;
         if (type === 'confirmed') {
             await pool.request()
@@ -1312,7 +1322,7 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
                         });
                     }
                 });
-        } else if(type === 'pending') {
+        } else if (type === 'pending') {
             await pool.request()
                 .execute('getPendingPaymentsList', (error, result) => {
                     if (error) {
@@ -1410,7 +1420,7 @@ router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, r
     }
 });
 
-router.post('/get-student-details', verifyToken, verifyAdmin, async (request, response) =>{
+router.post('/get-student-details', verifyToken, verifyAdmin, async (request, response) => {
 
     console.log(request.body);
     const studentID = request.body.studentID;
