@@ -778,41 +778,6 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
 
 });
 
-router.post('/check-student-id', verifyToken, verifyAdmin, async (request, response) => {
-
-    const studentID = request.body.studentID;
-
-    try {
-        const pool = await poolPromise;
-        await pool.request()
-            .input('studentID', sql.Char(7), studentID)
-            .execute('checkStudentID', (error, result) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    if (result.returnValue === 0) {
-                        response.status(200).send({
-                            status: true,
-                            name: result.recordset[0].name,
-                            course: result.recordset[0].course,
-                            academicYear: result.recordset[0].academicYear
-                        });
-                    } else {
-                        response.status(200).send({
-                            status: false,
-                            message: 'Student ID not found'
-                        });
-                    }
-                }
-            });
-
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
-    }
-
-});
-
-
 // view payments
 router.post('/get-Payments', verifyToken, verifyAdmin, async (request, response) => {
     const studentID = request.body.studentID;
