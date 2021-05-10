@@ -32,8 +32,10 @@ app.use(function (request, response, next) {
 });
 
 app.use('/profile-pictures', express.static(__dirname + '\\profile-pictures'));
+app.use('/request-documents', express.static(__dirname + '\\request-documents'));
 
-app.use(bodyParser.json({limit: '2mb'}));
+
+app.use(bodyParser.json({limit: '16mb'}));
 
 app.use(bodyParser.urlencoded({
     extended: true

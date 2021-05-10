@@ -320,6 +320,92 @@ router.post('/get-requests', verifyToken, async (request, response) => {
 
 });
 
+router.post('/delete-requests', verifyToken, async (request, response) => {
+
+    const requestIDs = request.body.requestIDs;
+    if (Array.isArray(requestIDs) && requestIDs.length > 0) {
+
+        try {
+
+            const requests = new sql.Table('REQUEST_ID');
+            requests.columns.add('requestID', sql.Int);
+
+            for (let requestID of requestIDs) {
+                if (!isNaN(requestID)) {
+                    requests.rows.add(requestID);
+                } else {
+                    response.status(400).send({
+                        status: false,
+                        message: 'Malformed request data'
+                    });
+                    return;
+                }
+            }
+
+            const pool = await poolPromise;
+            await pool.request()
+                .input('username', sql.Char(7), request.username)
+                .input('role', sql.Int, request.role)
+                .input('requestIDs', requests)
+                .execute('deleteRequests', (error, result) => {
+                    if (error) {
+                        console.log(error);
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        if (result.returnValue !== 0) {
+                            response.status(401).send(Errors.unauthorizedRequest);
+                        } else {
+                            response.status(200).send({
+                                status: true,
+                                message: 'Requests deleted successfully'
+                            });
+                        }
+                    }
+                });
+
+        } catch (error) {
+            console.log(error);
+            response.status(500).send(Errors.serverError);
+        }
+
+    } else {
+        response.status(400).send({
+            status: false,
+            message: 'Malformed request data'
+        });
+    }
+
+});
+
+router.post('/get-request-details', verifyToken, async (request, response) => {
+    const requestID = request.body.requestID;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('requestID', sql.Int, requestID)
+            .input('username', sql.Char(7), request.username)
+            .input('role', sql.Int, request.role)
+            .execute('getRequestDetails', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        request: result.recordsets[0],
+                        reviewedBy: result.recordsets[1],
+                        reasons: result.recordsets[2],
+                        reviewers: result.recordsets[3],
+                        requestsMade: result.recordsets[4]
+                    });
+                }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
 router.post('/get-academic-calenders', verifyToken, async (request, response) => {
 
     try {
@@ -424,6 +510,102 @@ router.post('/get-academic-years', verifyToken, async (request, response) => {
     } catch (error) {
         response.status(500).send(Errors.serverError);
     }
+
+});
+
+router.post('/get-request-types', verifyToken, async (request, response) => {
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .query('SELECT * FROM RequestType', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        requestTypes: result.recordset
+                    });
+                }
+            })
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+// Upload request form set by students
+router.post('/upload-request', verifyToken, async (request, response) => {
+
+    const data = request.body;
+
+    if (data.hasOwnProperty('new')) {
+        if ((request.role === 3 && data.studentID === request.username) || request.role === 1) {
+
+            try {
+
+                const reasons = new sql.Table('REASON');
+                reasons.columns.add('reason', sql.VarChar(150));
+
+                for (let reason of data.reasons) {
+                    reasons.rows.add(reason);
+                }
+
+                const requests = new sql.Table('REQUEST_TYPE');
+                requests.columns.add('requestTypeID', sql.Int);
+
+                for (let requestType of data.request) {
+                    requests.rows.add(requestType);
+                }
+
+                const pool = await poolPromise;
+                await pool.request()
+                    .input('new', sql.Bit, data.new)
+                    .input('requestID', sql.Int, parseInt(data.requestID, 10))
+                    .input('role', sql.Int, request.role)
+                    .input('studentID', sql.Char(7), data.studentID)
+                    .input('date', sql.Date, data.submissionDate)
+                    .input('remarks', sql.VarChar(500), data.remarks)
+                    .input('requests', requests)
+                    .input('reasons', reasons)
+                    .execute('addRequest', (error, result) => {
+                        if (error) {
+                            console.log(error);
+                            response.status(500).send(Errors.serverError);
+                        } else {
+                            console.log(result.returnValue);
+                            if (result.returnValue === -1) {
+                                response.status(401).send(Errors.unauthorizedRequest);
+                            } else {
+                                data.documents.forEach((image, index) => {
+                                    const path = './request-documents/' + result.returnValue + '' + index + '.png'
+                                    const base64Data = image.replace(/^data:([A-Za-z-+/]+);base64,/, '');
+                                    fs.writeFileSync(path, base64Data, {encoding: 'base64'});
+                                });
+                                response.status(200).send({
+                                    status: true,
+                                    message: 'Request saves successfully',
+                                    requestID: result.returnValue
+                                });
+                            }
+                        }
+                    });
+            } catch (error) {
+                console.log(error);
+                response.status(500).send(Errors.serverError);
+            }
+
+        } else {
+            response.status(401).send(Errors.unauthorizedRequest);
+        }
+    } else {
+        response.status(400).send({
+            status: false,
+            message: 'Malformed request data'
+        });
+    }
+
+    response.status(200).send({status: true, message: 'request received'})
 
 });
 

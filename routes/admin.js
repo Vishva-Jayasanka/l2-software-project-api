@@ -847,52 +847,6 @@ router.post('/get-students-of-batch', verifyToken, verifyAdmin, async (request, 
     });
 });
 
-// Upload request form set by students
-router.post('/upload-request', verifyToken, verifyAdmin, async (request, response) => {
-
-    const data = request.body;
-
-    try {
-
-        const reasons = new sql.Table('REASON');
-        reasons.columns.add('reason', sql.VarChar(150));
-
-        for (let reason of data.reasons) {
-            reasons.rows.add(reason);
-        }
-
-        const requests = new sql.Table('REQUEST_TYPE');
-        requests.columns.add('requestTypeID', sql.Int);
-
-        for (let requestType of data.request) {
-            requests.rows.add(requestType);
-        }
-
-        const pool = await poolPromise;
-        await pool.request()
-            .input('studentID', sql.Char(7), data.studentID)
-            .input('date', sql.Date, data.submissionDate)
-            .input('remarks', sql.VarChar(500), data.remarks)
-            .input('recordBookAttached', sql.Bit, data.recordBookAttached)
-            .input('documentsAttached', sql.Bit, data.documentsAttached)
-            .input('requests', requests)
-            .input('reasons', reasons)
-            .execute('addRequest', (error, result) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    response.status(200).send({
-                        status: true,
-                        message: 'Request saves successfully'
-                    });
-                }
-            });
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
-    }
-
-});
-
 // Enroll students to a semester
 router.post('/enroll-student', verifyToken, verifyAdmin, async (request, response) => {
     const enrollmentForm = request.body;
@@ -959,27 +913,6 @@ router.post('/check-if-results-uploaded', verifyToken, verifyAdmin, async (reque
 
 });
 
-router.post('/get-request-types', verifyToken, verifyAdmin, async (request, response) => {
-
-    try {
-        const pool = await poolPromise;
-        await pool.request()
-            .query('SELECT * FROM RequestType', (error, result) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    response.status(200).send({
-                        status: true,
-                        requestTypes: result.recordset
-                    });
-                }
-            })
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
-    }
-
-});
-
 router.post('/get-requests-brief', verifyToken, verifyAdmin, async (request, response) => {
 
     const studentID = request.body.studentID;
@@ -1005,27 +938,45 @@ router.post('/get-requests-brief', verifyToken, verifyAdmin, async (request, res
 
 });
 
-router.post('/get-request-details', verifyToken, verifyAdmin, async (request, response) => {
-    const requestID = request.body.requestID;
+router.post('/get-all-requests', verifyToken, verifyAdmin, async (request, response) => {
 
     try {
+
         const pool = await poolPromise;
         await pool.request()
-            .input('requestID', sql.Int, requestID)
-            .execute('getRequestDetails', (error, result) => {
+            .execute('getAllRequests', (error, result) => {
                 if (error) {
                     response.status(500).send(Errors.serverError);
                 } else {
-                    response.status(200).send({
+                    const requests = result.recordsets[0];
+                    const requestsMade = result.recordsets[1]
+                    const requestProgress = result.recordsets[2];
+                    for (const request of requests) {
+                        if (request.finalDecision === 0 || request.finalDecision === 1) {
+                            request.status = 2;
+                        } else {
+                            if (requestProgress.find(obj => obj.requestID === request.requestID)) {
+                                request.status = 1;
+                            } else {
+                                request.status = 0;
+                            }
+                        }
+                        const requestTypes = requestsMade.filter(obj => obj.requestID === request.requestID);
+                        request.requests = '';
+                        for (const obj of requestTypes) {
+                            request.requests += obj.request + ', '
+                        }
+                        request.requests = request.requests.substring(0, request.requests.length - 2);
+                    }
+                    response.send({
                         status: true,
-                        request: result.recordsets[0],
-                        reviewedBy: result.recordsets[1],
-                        reasons: result.recordsets[2],
-                        reviewers: result.recordsets[3]
+                        requests
                     });
                 }
-            })
+            });
+
     } catch (error) {
+        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -1063,13 +1014,12 @@ router.post('/update-request-status', verifyToken, verifyAdmin, async (request, 
             .input('submissionDate', sql.Date, data.newData.submissionDate)
             .input('remarks', sql.VarChar(500), data.newData.remarks)
             .input('finalDecision', sql.Int, data.newData.finalDecision)
-            .input('recordBookAttached', sql.Bit, data.newData.recordBookAttached)
-            .input('relevantDocumentsAttached', sql.Bit, data.newData.relevantDocumentsAttached)
             .input('requests', requests)
             .input('reasons', reasons)
             .input('progress', progress)
             .execute('updateRequestStatus', (error, result) => {
                 if (error) {
+                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -1079,6 +1029,7 @@ router.post('/update-request-status', verifyToken, verifyAdmin, async (request, 
                 }
             });
     } catch (error) {
+        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
