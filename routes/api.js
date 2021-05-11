@@ -534,7 +534,21 @@ router.post('/get-request-types', verifyToken, async (request, response) => {
 
 });
 
-// Upload request form set by students
+/**
+ * Uploads a request details to the server
+ * @request {
+ *      studentID: string,
+ *      submissionDate: Date,
+ *      request: number[],
+ *      reasons: string[],
+ *      remarks: string,
+ *      new: boolean,
+ *      documents: string[] (base64 Images)
+ * }
+ * @response {
+ *     requestID: number (Added request ID)
+ * }
+ */
 router.post('/upload-request', verifyToken, async (request, response) => {
 
     const data = request.body;
@@ -578,7 +592,7 @@ router.post('/upload-request', verifyToken, async (request, response) => {
                                 response.status(401).send(Errors.unauthorizedRequest);
                             } else {
                                 data.documents.forEach((image, index) => {
-                                    const path = './request-documents/' + result.returnValue + '' + index + '.png'
+                                    const path = './request-documents/' + data.studentID + '-' + result.returnValue + '-' + index + '.png'
                                     const base64Data = image.replace(/^data:([A-Za-z-+/]+);base64,/, '');
                                     fs.writeFileSync(path, base64Data, {encoding: 'base64'});
                                 });
@@ -604,8 +618,6 @@ router.post('/upload-request', verifyToken, async (request, response) => {
             message: 'Malformed request data'
         });
     }
-
-    response.status(200).send({status: true, message: 'request received'})
 
 });
 

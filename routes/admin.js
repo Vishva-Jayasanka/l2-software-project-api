@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const sql = require('mssql');
 const fs = require('fs');
-const bcrypt = require('bcrypt');
+const glob = require('glob');
 
 const Errors = require('../errors/errors');
 const {hashPassword} = require("../modules/validate-password");
@@ -978,6 +978,40 @@ router.post('/get-all-requests', verifyToken, verifyAdmin, async (request, respo
     } catch (error) {
         console.log(error);
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-request-documents', (request, response) => {
+
+    const data = request.body;
+
+    console.log(data);
+
+    try {
+        glob('./request-documents/' + data.studentID + '-' + data.requestID + '*.png', {},(error, files) => {
+            if (error) {
+                response.status(200).send(Errors.serverError);
+            } else {
+                if (files.length > 0) {
+                    const documents = [];
+                    for (let filename of files) {
+                        documents.push(fs.readFileSync(filename, {encoding: 'base64'}));
+                    }
+                    response.status(200).send({
+                        status: true,
+                        documents
+                    });
+                } else {
+                    response.status(200).send({
+                        status: false,
+                        message: 'No documents found'
+                    });
+                }
+            }
+        });
+    } catch (error) {
+        response.status(200).send(Errors.serverError);
     }
 
 });

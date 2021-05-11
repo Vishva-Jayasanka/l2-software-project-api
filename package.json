@@ -15,6 +15,7 @@
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
     "express-ws": "^4.0.0",
+    "glob": "^7.1.7",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "mongodb": "latest",
