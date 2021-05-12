@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 const fs = require('fs');
+const glob = require("glob");
 
 const Errors = require('../errors/errors');
 const emailVerification = require('../modules/email-verification');
@@ -355,6 +355,15 @@ router.post('/delete-requests', verifyToken, async (request, response) => {
                         if (result.returnValue !== 0) {
                             response.status(401).send(Errors.unauthorizedRequest);
                         } else {
+                            for (const requestID of requestIDs) {
+                                glob('./request-documents/*-' + requestID + '-*.png', {}, (error, files) => {
+                                    if (files.length > 0) {
+                                        for (let filename of files) {
+                                            fs.unlinkSync(filename);
+                                        }
+                                    }
+                                });
+                            }
                             response.status(200).send({
                                 status: true,
                                 message: 'Requests deleted successfully'
@@ -591,6 +600,13 @@ router.post('/upload-request', verifyToken, async (request, response) => {
                             if (result.returnValue === -1) {
                                 response.status(401).send(Errors.unauthorizedRequest);
                             } else {
+                                glob('./request-documents/*-' + data.requestID + '-*.png', {}, (error, files) => {
+                                    if (files.length > 0) {
+                                        for (let filename of files) {
+                                            fs.unlinkSync(filename);
+                                        }
+                                    }
+                                });
                                 data.documents.forEach((image, index) => {
                                     const path = './request-documents/' + data.studentID + '-' + result.returnValue + '-' + index + '.png'
                                     const base64Data = image.replace(/^data:([A-Za-z-+/]+);base64,/, '');
