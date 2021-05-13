@@ -349,7 +349,6 @@ router.post('/delete-requests', verifyToken, async (request, response) => {
                 .input('requestIDs', requests)
                 .execute('deleteRequests', (error, result) => {
                     if (error) {
-                        console.log(error);
                         response.status(500).send(Errors.serverError);
                     } else {
                         if (result.returnValue !== 0) {
@@ -373,7 +372,6 @@ router.post('/delete-requests', verifyToken, async (request, response) => {
                 });
 
         } catch (error) {
-            console.log(error);
             response.status(500).send(Errors.serverError);
         }
 
@@ -593,10 +591,8 @@ router.post('/upload-request', verifyToken, async (request, response) => {
                     .input('reasons', reasons)
                     .execute('addRequest', (error, result) => {
                         if (error) {
-                            console.log(error);
                             response.status(500).send(Errors.serverError);
                         } else {
-                            console.log(result.returnValue);
                             if (result.returnValue === -1) {
                                 response.status(401).send(Errors.unauthorizedRequest);
                             } else {
@@ -621,7 +617,6 @@ router.post('/upload-request', verifyToken, async (request, response) => {
                         }
                     });
             } catch (error) {
-                console.log(error);
                 response.status(500).send(Errors.serverError);
             }
 

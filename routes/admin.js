@@ -976,7 +976,6 @@ router.post('/get-all-requests', verifyToken, verifyAdmin, async (request, respo
             });
 
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -1051,7 +1050,6 @@ router.post('/update-request-status', verifyToken, verifyAdmin, async (request, 
             .input('progress', progress)
             .execute('updateRequestStatus', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -1061,7 +1059,6 @@ router.post('/update-request-status', verifyToken, verifyAdmin, async (request, 
                 }
             });
     } catch (error) {
-        console.log(error);
         response.status(500).send(Errors.serverError);
     }
 
@@ -1183,7 +1180,6 @@ router.post('/delete-message', verifyToken, verifyAdmin, async (request, respons
             .input('username', sql.Char(7), request.username)
             .execute('deleteNotification', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(200).send(Errors.serverError);
                 } else {
                     if (result.returnValue !== 0) {
@@ -1218,7 +1214,6 @@ router.post('/upload-payment', verifyToken, verifyAdmin, async (request, respons
             .input('paymentStatus', sql.Int, 1)
             .execute('uploadPayment', function (error, result) {
                 if (error) {
-                    console.error(error);
                     response.send(Errors.serverError);
                 } else {
                     response.send({
@@ -1235,7 +1230,7 @@ router.post('/upload-payment', verifyToken, verifyAdmin, async (request, respons
 });
 
 router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (request, response) => {
-    console.log('request.body.studentID;=', request.body.studentID);
+
     const studentID = request.body.studentID;
 
     try {
@@ -1261,7 +1256,7 @@ router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (req
 });
 
 router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, response) => {
-    console.log('request.body = ', request.body);
+
     const slipNo = request.body.slipNo;
 
     try {
@@ -1271,7 +1266,6 @@ router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, re
             .input('slipNo', sql.Int, slipNo)
             .execute('viewPaymentDetails', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -1320,7 +1314,6 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
         }
 
     } catch (error) {
-        console.error(result);
         response.status(200).send(Errors.serverError);
     }
 });
@@ -1339,7 +1332,6 @@ router.post('/edit-payment', verifyToken, verifyAdmin, async (request, response)
             .input('bank', sql.Char(20), data.bankName)
             .execute('editPayment', (error, result) => {
                 if (error) {
-                    console.error(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -1349,7 +1341,6 @@ router.post('/edit-payment', verifyToken, verifyAdmin, async (request, response)
                 }
             });
     } catch (error) {
-        console.error(error);
         response.status(500).send(Errors.serverError);
     }
 });
@@ -1398,14 +1389,12 @@ router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, r
                 }
             });
     } catch (error) {
-        console.error(result);
         response.status(200).send(Errors.serverError);
     }
 });
 
 router.post('/get-student-details', verifyToken, verifyAdmin, async (request, response) => {
 
-    console.log(request.body);
     const studentID = request.body.studentID;
 
     try {
