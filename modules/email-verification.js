@@ -5,8 +5,8 @@ const {recoveryEmailTemplate} = require('../models/recovery-email-template');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: '',
-        pass: ''
+        user: 'vishvajayasanka@gmail.com',
+        pass: 'BmwM3GTRE46'
     }
 });
 
