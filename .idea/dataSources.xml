@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="imsdb" uuid="167f687a-d68c-4418-8321-95f2cfb75a7b">
+    <data-source source="LOCAL" name="Local Server" uuid="167f687a-d68c-4418-8321-95f2cfb75a7b">
       <driver-ref>sqlserver.ms</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
       <jdbc-url>jdbc:sqlserver://localhost\MSSQLSERVER;database=imsdb</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="Cloud Server" uuid="9ae112b2-5314-4e6f-b0df-d0a4c05e621a">
+      <driver-ref>sqlserver.ms</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
+      <jdbc-url>jdbc:sqlserver://mssqlserver.cb9qno8m1wma.ap-south-1.rds.amazonaws.com\mssqlserver:1433</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
 </project>

@@ -33,8 +33,6 @@ async function addVerificationRequest(username, email, token, callback) {
 
 router.post('/login', async (request, response) => {
 
-    console.log(request.body);
-
     let userData = request.body;
     try {
         const pool = await poolPromise;
