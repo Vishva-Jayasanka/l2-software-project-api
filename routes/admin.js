@@ -986,10 +986,8 @@ router.post('/get-request-documents', (request, response) => {
 
     const data = request.body;
 
-    console.log(data);
-
     try {
-        glob('./request-documents/' + data.studentID + '-' + data.requestID + '*.png', {},(error, files) => {
+        glob('./request-documents/*'+ '-' + data.requestID + '-*.png', {},(error, files) => {
             if (error) {
                 response.status(200).send(Errors.serverError);
             } else {
