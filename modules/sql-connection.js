@@ -8,7 +8,7 @@ const config = {
     database: 'imsdb',
     options: {
         enableArithAbort: true,
-        encrypt: false
+        encrypt: true
     }
 }
 
