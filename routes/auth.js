@@ -207,7 +207,6 @@ router.post('/send-password-reset-email', async (request, response) => {
                             timeSent: Date.now()
                         }, 'password_reset');
                         user.username = username;
-                        console.log(user);
                         emailVerification.sendPasswordResetEmail(user, async status => {
                             if (status) {
                                 await addVerificationRequest(username, result.recordset[0].recoveryEmail, user.token, (error, result) => {

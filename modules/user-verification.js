@@ -64,6 +64,8 @@ module.exports = {
                 const pool = await poolPromise;
                 await pool.request()
                     .input('username', sql.Char(7), payload.subject)
+                    .input('token', sql.VarChar(300), token)
+                    .input('time', sql.BigInt, +new Date())
                     .execute('checkValidity', (error, result) => {
                         if (error) {
                             return 'WebSocket connection refused!';

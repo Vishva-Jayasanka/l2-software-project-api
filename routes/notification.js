@@ -5,9 +5,9 @@ const {poolPromise} = require("../modules/sql-connection");
 module.exports = {
     onConnection: function (socket, wsServer) {
         socket.on('message', async message => {
+            let msg = JSON.parse(message);
             if (socket.details.roleID === 1 || socket.details.roleID === 2) {
                 try {
-                    let msg = JSON.parse(message);
                     if (msg.messageType === 'notification') {
                         msg = msg.messageBody;
                         msg.recipients.push(socket.details.username);
@@ -29,10 +29,11 @@ module.exports = {
                             .execute('addNotification', (error, result) => {
 
                                 if (error || result.returnValue === -1) {
-                                    console.log(error);
                                     socket.send(JSON.stringify({
-                                        status: false,
-                                        message: 'Error sending the message'
+                                        messageType: 'acknowledgement',
+                                        status: 'failed',
+                                        message: 'Error sending the message',
+                                        timeStamp: msg.timeStamp
                                     }));
                                 } else {
                                     const messageToSend = JSON.stringify({
@@ -49,28 +50,35 @@ module.exports = {
 
                                     wsServer.clients.forEach(client => {
                                         if (client.readyState === ws.OPEN) {
-                                            if (msg.recipients.find(recipient => recipient === client.details.username) || msg.recipients.find(recipient => recipient.toString() === '20' + client.details.username.substring(0, 2))) {
+                                            if (msg.recipients.find(recipient => recipient === client.details.username && recipient !== socket.details.username) ||
+                                                msg.recipients.find(recipient => recipient.toString() === '20' + client.details.username.substring(0, 2))) {
                                                 client.send(messageToSend);
                                             }
                                         }
                                     });
 
                                     socket.send(JSON.stringify({
-                                        status: true,
-                                        message: 'Message sent successfully'
+                                        messageType: 'acknowledgement',
+                                        notificationID: result.returnValue,
+                                        status: 'sent',
+                                        messageBody: 'Message sent successfully',
+                                        timeStamp: msg.timeStamp
                                     }));
+
+                                    updateMessageStatus(result.returnValue, socket.details.username);
 
                                 }
                             });
                     }
                 } catch (error) {
                     socket.send(JSON.stringify({
-                        status: false,
-                        message: 'Error sending the message'
+                        messageType: 'acknowledgement',
+                        status: 'failed',
+                        message: 'Error sending the message',
+                        timeStamp: msg.messageBody.timeStamp
                     }));
                 }
             } else {
-                const msg = JSON.parse(message);
                 if (msg.messageType === 'acknowledgement') {
                     try {
                         await updateMessageStatus(msg.messageBody, socket.details.username);

@@ -1,9 +1,9 @@
 const sql = require('mssql');
 
 const config = {
-    server: 'mssqlserver.cb9qno8m1wma.ap-south-1.rds.amazonaws.com',
+    server: 'localhost',
     user: 'jayasanka',
-    password: 'Intelh61m#',
+    password: 'jayasanka',
     database: 'imsdb',
     options: {
         enableArithAbort: true,

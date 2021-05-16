@@ -19,30 +19,41 @@ function verifyAdmin(request, response, next) {
 }
 
 router.post('/check-module', verifyToken, verifyAdmin, async (request, response) => {
-    try {
-        const pool = await poolPromise;
-        await pool.request()
-            .input('moduleCode', sql.Char(6), request.body.moduleCode)
-            .execute('checkModule', (error, result) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    if (result.returnValue === 1) {
-                        response.status(200).send({
-                            status: true,
-                            message: 'Module does not exist..!'
-                        });
+
+    let moduleCode = request.body.moduleCode;
+
+    if (moduleCode && /[A-Za-z]{2}[0-9]{4}/.test(moduleCode)) {
+        try {
+            moduleCode = moduleCode.toUpperCase();
+            const pool = await poolPromise;
+            await pool.request()
+                .input('moduleCode', sql.Char(6), moduleCode)
+                .execute('checkModule', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
                     } else {
-                        response.status(200).send({
-                            status: false,
-                            moduleName: result.recordset[0].moduleName,
-                            message: 'Module Exists..!'
-                        })
+                        if (result.returnValue === 1) {
+                            response.status(200).send({
+                                status: true,
+                                message: 'Module does not exist'
+                            });
+                        } else {
+                            response.status(200).send({
+                                status: false,
+                                moduleName: result.recordset[0].moduleName,
+                                message: 'Module Exists'
+                            })
+                        }
                     }
-                }
-            })
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
+                })
+        } catch (error) {
+            response.status(500).send(Errors.serverError);
+        }
+    } else {
+        response.status(401).send({
+            status: false,
+            message: 'Invalid module code'
+        });
     }
 });
 
@@ -152,29 +163,38 @@ router.post('/add-edit-module', verifyToken, verifyAdmin, async (request, respon
 });
 
 router.post('/delete-module', verifyToken, verifyAdmin, async (request, response) => {
-    try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('moduleCode', sql.Char(6), request.body.moduleCode)
-            .execute('deleteModule', (error, result) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    if (result.returnValue === 0) {
-                        response.status(200).send({
-                            status: true,
-                            message: 'Module deleted successfully'
-                        });
+
+    const moduleCode = request.body.moduleCode;
+    if (moduleCode) {
+        try {
+            const pool = await poolPromise;
+            await pool.request()
+                .input('moduleCode', sql.Char(6), request.body.moduleCode)
+                .execute('deleteModule', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
                     } else {
-                        response.status(200).send({
-                            status: false,
-                            message: 'Could not delete the module'
-                        });
+                        if (result.returnValue === 0) {
+                            response.status(200).send({
+                                status: true,
+                                message: 'Module deleted successfully'
+                            });
+                        } else {
+                            response.status(200).send({
+                                status: false,
+                                message: 'Could not delete the module'
+                            });
+                        }
                     }
-                }
-            });
-    } catch (error) {
-        response.status(500).send(Errors.serverError);
+                });
+        } catch (error) {
+            response.status(500).send(Errors.serverError);
+        }
+    } else {
+        response.status(401).send({
+            status: false,
+            message: 'Malformed request body'
+        });
     }
 });
 
@@ -383,6 +403,7 @@ router.post('/upload-results', verifyToken, verifyAdmin, async (request, respons
             .input('marks', marks)
             .execute('uploadMarks', (error, result) => {
                 if (error) {
+                    console.log(error);
                     if (error.number === 2627) {
                         response.status(400).send({
                             status: false,
@@ -849,6 +870,7 @@ router.post('/get-students-of-batch', verifyToken, verifyAdmin, async (request, 
 
 // Enroll students to a semester
 router.post('/enroll-student', verifyToken, verifyAdmin, async (request, response) => {
+
     const enrollmentForm = request.body;
 
     try {
@@ -860,21 +882,52 @@ router.post('/enroll-student', verifyToken, verifyAdmin, async (request, respons
         }
 
         const pool = await poolPromise;
-        await pool.request()
-            .input('studentID', sql.Char(7), enrollmentForm.studentID)
-            .input('semester', sql.Int, enrollmentForm.semester)
-            .input('academicYear', sql.Int, enrollmentForm.academicYear)
-            .input('modules', modules)
-            .execute('enrollStudent', (error, result) => {
-                if (error) {
-                    response.status(500).send(Errors.serverError);
-                } else {
-                    response.status(200).send({
-                        status: true,
-                        message: 'Student enrolled successfully.'
-                    });
-                }
-            })
+
+        if (enrollmentForm.new) {
+
+            await pool.request()
+                .input('studentID', sql.Char(7), enrollmentForm.studentID)
+                .input('semester', sql.Int, enrollmentForm.semester)
+                .input('academicYear', sql.Int, enrollmentForm.academicYear)
+                .input('modules', modules)
+                .execute('enrollStudent', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            message: 'Student enrolled successfully.'
+                        });
+                    }
+                })
+        } else {
+
+            await pool.request()
+                .input('enrollmentID', sql.Int, enrollmentForm.enrollmentID)
+                .input('modules', modules)
+                .execute('updateEnrollment', (error, result) => {
+
+                    if (error) {
+                        console.log(error);
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        console.log(result.returnValue);
+                        if (result.returnValue === 0) {
+                            response.status(200).send({
+                                status: true,
+                                message: 'Enrollment Updated successfully'
+                            });
+                        } else {
+                            response.status(400).send({
+                                status: false,
+                                message: 'Malformed request syntax'
+                            });
+                        }
+                    }
+
+                });
+
+        }
     } catch (exception) {
         response.status(500).send(Errors.serverError);
     }
@@ -1431,6 +1484,93 @@ router.post('/get-student-details', verifyToken, verifyAdmin, async (request, re
             });
     } catch (error) {
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-enrollments', verifyToken, verifyAdmin, async (request, response) => {
+
+    const offset = request.body.offset;
+    const count = request.body.count;
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('offset', sql.Int, offset)
+            .input('count', sql.Int, count)
+            .execute('getEnrollments', (error, result) => {
+               if (error) {
+                   console.log(error);
+                   response.status(500).send(Errors.serverError);
+               } else {
+
+                   const numRows = result.recordsets[0][0].count;
+                   const enrollments = result.recordsets[1];
+                   const modules = result.recordsets[2];
+
+                   for (let enrollment of enrollments) {
+                       enrollment.modules = modules.filter(module => module.enrollmentID === enrollment.enrollmentID).map(item => item.moduleCode);
+                   }
+
+                   response.status(200).send({
+                       status: true,
+                       numRows,
+                       enrollments
+                   });
+               }
+            });
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/delete-enrollments', verifyToken, verifyAdmin, async (request, response) => {
+
+    const data = request.body.enrollmentIDs;
+    console.log(request.body);
+
+    if (Array.isArray(data) && data.length > 0) {
+
+        try {
+
+            const enrollmentsIDs = new sql.Table('ENROLLMENT_ID');
+            enrollmentsIDs.columns.add('enrollmentID', sql.Int);
+
+            for (let enrollmentID of data) {
+                enrollmentsIDs.rows.add(enrollmentID);
+            }
+
+            const pool = await poolPromise;
+            await pool.request()
+                .input('enrollmentIDs', enrollmentsIDs)
+                .execute('deleteEnrollments', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        if (result.returnValue === 0) {
+                            response.status(200).send({
+                                status: true,
+                                message: 'Enrollments deleted successfully'
+                            });
+                        } else {
+                            response.status(500).send({
+                                status: false,
+                                message: 'Unable to delete enrollments'
+                            });
+                        }
+                    }
+                });
+        } catch (error) {
+            response.status(500).send(Errors.serverError);
+        }
+
+    } else {
+        response.status(400).send({
+            status: false,
+            message: 'Malformed request syntax'
+        });
     }
 
 });

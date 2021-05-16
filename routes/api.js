@@ -14,6 +14,8 @@ const {poolPromise} = require('../modules/sql-connection');
 
 router.post('/get-modules', verifyToken, async (request, response) => {
     const username = request.username;
+
+    console.log(request.role);
     try {
         const pool = await poolPromise;
         const result = await pool.request()
@@ -250,9 +252,18 @@ router.post('/get-notifications', verifyToken, async (request, response) => {
                 if (error || result.returnValue === -1) {
                     response.status(500).send(Errors.serverError);
                 } else {
+
+                    const notifications = result.recordsets[0];
+                    const recipients = result.recordsets[1];
+
+                    for (let notification of notifications) {
+                        notification.recipients = recipients.filter(recipient => recipient.notificationID === notification.notificationID && recipient.recipientID !== notification.sentBy).map( recip => recip.recipientID);
+                        delete notification.sentBy;
+                    }
+
                     response.status(200).send({
                         status: true,
-                        notifications: result.recordset
+                        notifications
                     });
                 }
             });
