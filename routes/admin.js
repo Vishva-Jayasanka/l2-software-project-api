@@ -702,6 +702,7 @@ router.post('/delete-exam', verifyToken, verifyAdmin, async (request, response) 
 router.post('/register-student', verifyToken, verifyAdmin, async (request, response) => {
 
     const data = request.body.studentDetails;
+    console.log('data = ', data);
 
     try {
 
@@ -716,7 +717,7 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
 
                     const maxUsername = result.recordset[0].maxUsername === null ? (year + '4000A').toString() : result.recordset[0].maxUsername;
                     const studentID = (parseInt(maxUsername.substring(0, 6)) + 1).toString() + String.fromCharCode(((maxUsername.charCodeAt(6) - 60) % 26) + 65)
-                    const name = data.name.nameWithInitials.split(' ');
+                    const name = data.name.fullName.split(' ');
 
                     const qualifications = new sql.Table('EDUCATION_QUALIFICATION');
                     qualifications.columns.add('degree', sql.VarChar(50));
@@ -738,6 +739,7 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                                 .input('courseID', sql.Int, data.courseName)
                                 .input('academicYear', sql.Int, data.academicYear)
                                 .input('fullName', sql.VarChar(100), data.name.fullName)
+                                .input('title', sql.VarChar(100), data.name.title)
                                 .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
                                 .input('firstName', sql.VarChar(20), name[0])
                                 .input('lastName', sql.VarChar(20), name[1])
@@ -1187,28 +1189,47 @@ router.post('/delete-message', verifyToken, verifyAdmin, async (request, respons
 router.post('/upload-payment', verifyToken, verifyAdmin, async (request, response) => {
 
     const data = request.body;
+    const image = request.body.paymentSlip;
 
     try {
-        const pool = await poolPromise;
-        await pool.request()
-            .input('studentID', sql.Char(7), data.paymentForm.depositor.registrationNumber)
-            .input('bank', sql.VarChar(50), data.paymentForm.deposit.bankName)
-            .input('slipNo', sql.Int, data.paymentForm.deposit.slipNumber)
-            .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
-            .input('externalNote', sql.VarChar(50), data.paymentForm.deposit.externalNote)
-            .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
-            .input('paymentStatus', sql.Int, 1)
-            .execute('uploadPayment', function (error, result) {
-                if (error) {
-                    console.error(error);
-                    response.send(Errors.serverError);
-                } else {
-                    response.send({
-                        status: true,
-                        message: 'Request received successfully'
-                    });
-                }
+        if (!image) {
+            response.status(401).send({
+                status: false,
+                message: 'Image not found'
+             });
+        } else {
+            var dateTime= new Date().toJSON().slice(0,19).replace('T','-').replace(':','-');
+            dateTime = dateTime.toString().replace(':','-');
+            const path = './slip-pictures/payment_' + request.username + dateTime +'.png';
+            const base64Data = image.replace(/^data:([A-Za-z-+/]+);base64,/, '');
+            fs.writeFileSync(path, base64Data, {encoding: 'base64'});
+            response.send({
+                status: true,
+                message: 'payment slip picture updated successfully'
             });
+
+            const pool = await poolPromise;
+            await pool.request()
+                .input('studentID', sql.Char(7), data.paymentForm.depositor.registrationNumber)
+                .input('bank', sql.VarChar(50), data.paymentForm.deposit.bankName)
+                .input('slipNo', sql.Int, data.paymentForm.deposit.slipNumber)
+                .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
+                .input('externalNote', sql.VarChar(50), data.paymentForm.deposit.externalNote)
+                .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
+                .input('paymentStatus', sql.Int, 1)
+                .input('paySlip', sql.VarChar(500), path)
+                .execute('uploadPayment', function (error, result) {
+                    if (error) {
+                        console.error('error :', error);
+                        response.send(Errors.serverError);
+                    } else {
+                        response.send({
+                            status: true,
+                            message: 'Request received successfully'
+                        });
+                    }
+                });
+        }
 
     } catch (error) {
         response.status(500).send(Errors.serverError);
