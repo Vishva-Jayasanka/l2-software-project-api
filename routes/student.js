@@ -54,7 +54,7 @@ router.post('/get-students-payment-details', verifyToken, verifyStudent, async (
     try {
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('studentID', sql.Char(7), studentID)
             .execute('getStudentPayments', (error, result) => {
                 if (error || result.returnValue === -1) {

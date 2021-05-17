@@ -16,7 +16,6 @@ const {poolPromise} = require('../modules/sql-connection');
 router.post('/get-modules', verifyToken, async (request, response) => {
     const username = request.username;
 
-    console.log(request.role);
     try {
         const pool = await poolPromise;
         const result = await pool.request()
@@ -258,7 +257,7 @@ router.post('/get-notifications', verifyToken, async (request, response) => {
                     const recipients = result.recordsets[1];
 
                     for (let notification of notifications) {
-                        notification.recipients = recipients.filter(recipient => recipient.notificationID === notification.notificationID && recipient.recipientID !== notification.sentBy).map( recip => recip.recipientID);
+                        notification.recipients = recipients.filter(recipient => recipient.notificationID === notification.notificationID && recipient.recipientID !== notification.sentBy).map(recip => recip.recipientID);
                         delete notification.sentBy;
                     }
 
@@ -679,7 +678,7 @@ router.post('/check-student-id', verifyToken, async (request, response) => {
 });
 
 router.post('/get-payment-details', verifyToken, async (request, response) => {
-    console.log('request.body = ', request.body);
+
     const slipNo = request.body.slipNo;
 
     try {
@@ -689,7 +688,6 @@ router.post('/get-payment-details', verifyToken, async (request, response) => {
             .input('slipNo', sql.Int, slipNo)
             .execute('viewPaymentDetails', (error, result) => {
                 if (error) {
-                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -701,6 +699,101 @@ router.post('/get-payment-details', verifyToken, async (request, response) => {
 
     } catch (error) {
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-payment-details-payment-id', verifyToken, async (request, response) => {
+
+    const paymentID = request.body.paymentID;
+
+    try {
+
+        const pool = await poolPromise;
+        await pool.request()
+            .input('username', sql.Char(7), request.username)
+            .input('role', sql.Int, request.role)
+            .input('paymentID', sql.Int, paymentID)
+            .execute('getPaymentDetails', (error, result) => {
+
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.returnValue === 0) {
+                        response.status(200).send({
+                            status: true,
+                            payment: result.recordset[0]
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: false,
+                            message: 'No payment information found'
+                        });
+                    }
+                }
+
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-payment-slip', verifyToken, async (request, response) => {
+
+    const data = request.body;
+    console.log(data);
+
+    if (request.role === 3) {
+        if (!data.studentID || !data.paymentID || request.username !== data.studentID) {
+            return response.status(401).send(Errors.serverError);
+        }
+    }
+
+    let slip;
+    try {
+        slip = fs.readFileSync('./payment-slips/' + data.studentID + '-' + data.paymentID + '.png', {encoding: 'base64'});
+    } catch (Ignore) { }
+    if (slip) {
+        response.status(200).send({
+            status: true,
+            paymentSlip: slip
+        });
+    } else {
+        response.status(200).send({
+            status: false,
+            message: 'Sip not found'
+        })
+    }
+
+
+});
+
+router.post('/get-payments', verifyToken, async (request, response) => {
+
+    if (request.role === 3) {
+        try {
+
+            const pool = await poolPromise;
+            pool.request()
+                .input('studentID', sql.Char(7), request.username)
+                .query('SELECT * FROM imsdb.dbo.Payment WHERE studentID = @studentID', (error, result) => {
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        response.status(200).send({
+                            status: true,
+                            payments: result.recordset
+                        });
+                    }
+                });
+
+        } catch (error) {
+            response.status(500).send(Errors.serverError);
+        }
+    } else {
+        response.status(401).send(Errors.unauthorizedRequest);
     }
 
 });

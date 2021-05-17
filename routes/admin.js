@@ -1269,28 +1269,49 @@ router.post('/delete-message', verifyToken, verifyAdmin, async (request, respons
 
 });
 
-router.post('/upload-payment', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/upload-payment', verifyToken, async (request, response) => {
 
     const data = request.body;
+
+    if (request.role === 3) {
+        if (data.depositor.registrationNumber !== request.username) {
+            return response.status(401).send(Errors.unauthorizedRequest);
+        }
+    }
 
     try {
         const pool = await poolPromise;
         await pool.request()
-            .input('studentID', sql.Char(7), data.paymentForm.depositor.registrationNumber)
-            .input('bank', sql.VarChar(50), data.paymentForm.deposit.bankName)
-            .input('slipNo', sql.Int, data.paymentForm.deposit.slipNumber)
-            .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
-            .input('externalNote', sql.VarChar(50), data.paymentForm.deposit.externalNote)
-            .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
-            .input('paymentStatus', sql.Int, 1)
+            .input('paymentID', sql.Int, data.new ? 0 : data.paymentID)
+            .input('slipNo', sql.Int, data.deposit.slipNumber)
+            .input('amount', sql.Int, data.deposit.totalPaid)
+            .input('paymentDate', sql.Date, data.deposit.paymentDate)
+            .input('bank', sql.VarChar(50), data.deposit.bankName)
+            .input('studentID', sql.Char(7), data.depositor.registrationNumber)
+            .input('externalNote', sql.VarChar(50), data.deposit.externalNote)
+            .input('paymentStatus', sql.Int, request.role === 3 ? 1 : data.paymentStatus)
+            .input('new', sql.Bit, data.new)
+            .input('role', sql.Int, request.role)
             .execute('uploadPayment', function (error, result) {
                 if (error) {
-                    response.send(Errors.serverError);
+                    response.status(500).send(Errors.serverError);
                 } else {
-                    response.send({
-                        status: true,
-                        message: 'Request received successfully'
-                    });
+                    if (result.returnValue > 0) {
+                        if (data.slip) {
+                            const base64Data = data.slip.replace(/^data:([A-Za-z-+/]+);base64,/, '')
+                            fs.writeFileSync(`./payment-slips/${data.depositor.registrationNumber}-${result.returnValue}.png`, base64Data, {encoding: 'base64'})
+                            response.send({
+                                status: true,
+                                paymentID: result.returnValue,
+                                message: 'Request received successfully'
+                            });
+                        } else {response.status(401).send({
+                            status: false,
+                            message: 'Malformed request syntax'
+                        })}
+                    } else {
+                        response.status(401).send(Errors.unauthorizedRequest)
+                    }
                 }
             });
 
@@ -1307,7 +1328,7 @@ router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (req
     try {
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('studentID', sql.Char(7), studentID)
             .execute('getStudentPayments', (error, result) => {
                 if (error || result.returnValue === -1) {
@@ -1353,7 +1374,9 @@ router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, re
 });
 
 router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, response) => {
+
     const type = request.body.type;
+
     try {
         const pool = await poolPromise;
         if (type === 'confirmed') {
@@ -1392,6 +1415,7 @@ router.post('/get-payment-list', verifyToken, verifyAdmin, async (request, respo
 router.post('/edit-payment', verifyToken, verifyAdmin, async (request, response) => {
 
     const data = request.body;
+    console.log(data);
 
     try {
 
@@ -1419,7 +1443,7 @@ router.post('/edit-payment', verifyToken, verifyAdmin, async (request, response)
 router.post('/delete-payment', verifyToken, verifyAdmin, async (request, response) => {
     try {
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('slipNo', sql.Int, request.body.slipNo)
             .execute('deletePayment', (error, result) => {
                 if (error) {
