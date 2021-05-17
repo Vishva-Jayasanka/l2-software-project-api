@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const sql = require('mssql');
 const fs = require('fs');
 const glob = require("glob");
@@ -642,5 +643,67 @@ router.post('/upload-request', verifyToken, async (request, response) => {
     }
 
 });
+
+router.post('/check-student-id', verifyToken, async (request, response) => {
+
+    const studentID = request.body.studentID;
+
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('studentID', sql.Char(7), studentID)
+            .execute('checkStudentID', (error, result) => {
+                if (error) {
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    if (result.returnValue === 0) {
+                        response.status(200).send({
+                            status: true,
+                            name: result.recordset[0].name,
+                            course: result.recordset[0].course,
+                            academicYear: result.recordset[0].academicYear
+                        });
+                    } else {
+                        response.status(200).send({
+                            status: false,
+                            message: 'Student ID not found'
+                        });
+                    }
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/get-payment-details', verifyToken, async (request, response) => {
+    console.log('request.body = ', request.body);
+    const slipNo = request.body.slipNo;
+
+    try {
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('slipNo', sql.Int, slipNo)
+            .execute('viewPaymentDetails', (error, result) => {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
+                    response.status(200).send({
+                        status: true,
+                        results: result.recordsets
+                    });
+                }
+            });
+
+    } catch (error) {
+        response.status(500).send(Errors.serverError);
+    }
+
+});
+
 
 module.exports = router;
