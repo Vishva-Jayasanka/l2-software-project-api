@@ -265,15 +265,14 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
 
         const attendance = new sql.Table('SESSION_ATTENDANCE');
         attendance.columns.add('studentID', sql.Char(7));
+        attendance.columns.add('status', sql.Bit);
 
         for (let record of data.attendance) {
-            if (record.status === 0) {
-                attendance.rows.add(record.index);
-            }
+            attendance.rows.add(record.index, record.status);
         }
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('lectureHourID', sql.Int, data.lectureHourID)
             .input('batch', sql.Int, data.batch)
             .input('date', sql.Date, data.date)
@@ -281,12 +280,20 @@ router.post('/upload-attendance', verifyToken, verifyAdmin, async (request, resp
             .input('attendance', attendance)
             .execute('uploadAttendance', (error, result) => {
                 if (error) {
+                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
-                    response.status(200).send({
-                        status: true,
-                        message: 'Successfully saved'
-                    });
+                    if (result.returnValue === 0) {
+                        response.status(200).send({
+                            status: true,
+                            message: 'Successfully saved'
+                        });
+                    } else {
+                        response.status(401).send({
+                            status: false,
+                            message: 'Found students who are not registered to this module'
+                        });
+                    }
                 }
             });
     } catch (error) {
@@ -327,19 +334,19 @@ router.post('/save-attendance-changes', verifyToken, verifyAdmin, async (request
 
         const attendance = new sql.Table('SESSION_ATTENDANCE');
         attendance.columns.add('studentID', sql.Char(7));
+        attendance.columns.add('status', sql.Bit)
 
         for (let record of data.attendance) {
-            if (!record.status) {
-                attendance.rows.add(record.studentID);
-            }
+            attendance.rows.add(record.studentID, record.status);
         }
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('sessionID', sql.Int, data.sessionID)
             .input('attendance', attendance)
             .execute('modifyAttendance', (error, result) => {
                 if (error) {
+                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     response.status(200).send({
@@ -1183,6 +1190,52 @@ router.post('/check-keyword', verifyToken, verifyAdmin, async (request, response
 
     } catch (error) {
         response.status(500).send(Errors.serverError);
+    }
+
+});
+
+router.post('/check-student-id', verifyToken, verifyAdmin, async (request, response) => {
+
+    const studentID = request.body.studentID.toUpperCase();
+
+    if (studentID && /^[0-9]{6}[A-Z]$/.test(studentID)) {
+
+        try {
+
+            const pool = await poolPromise;
+            await pool.request()
+                .input('studentID', sql.Char(7), studentID)
+                .execute('checkStudentID', (error, result) => {
+
+                    if (error) {
+                        response.status(500).send(Errors.serverError);
+                    } else {
+                        if (result.returnValue === 0) {
+                            response.status(200).send({
+                                status: true,
+                                name: result.recordset[0].name,
+                                course: result.recordset[0].course,
+                                academicYear: result.recordset[0].academicYear
+                            });
+                        } else {
+                            response.status(200).send({
+                                status: false,
+                                message: 'Student not found'
+                            });
+                        }
+                    }
+
+                });
+
+        } catch (error) {
+            response.status(500).send(Errors.serverError);
+        }
+
+    } else {
+        response.status(401).send({
+            status: false,
+            message: 'Invalid student ID'
+        })
     }
 
 });
