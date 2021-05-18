@@ -766,6 +766,7 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                                 .input('courseID', sql.Int, data.courseName)
                                 .input('academicYear', sql.Int, data.academicYear)
                                 .input('fullName', sql.VarChar(100), data.name.fullName)
+                                .input('title', sql.VarChar(100), data.name.title)
                                 .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
                                 .input('firstName', sql.VarChar(20), name[0])
                                 .input('lastName', sql.VarChar(20), name[1])
@@ -1289,11 +1290,12 @@ router.post('/upload-payment', verifyToken, async (request, response) => {
             .input('bank', sql.VarChar(50), data.deposit.bankName)
             .input('studentID', sql.Char(7), data.depositor.registrationNumber)
             .input('externalNote', sql.VarChar(50), data.deposit.externalNote)
-            .input('paymentStatus', sql.Int, request.role === 3 ? 1 : data.paymentStatus)
+            .input('paymentStatus', sql.Int, 2)
             .input('new', sql.Bit, data.new)
             .input('role', sql.Int, request.role)
             .execute('uploadPayment', function (error, result) {
                 if (error) {
+                    console.log(error);
                     response.status(500).send(Errors.serverError);
                 } else {
                     if (result.returnValue > 0) {
@@ -1316,7 +1318,11 @@ router.post('/upload-payment', verifyToken, async (request, response) => {
             });
 
     } catch (error) {
-        response.status(500).send(Errors.serverError);
+    if(error){
+    console.log(error);
+     response.status(500).send(Errors.serverError);
+    }
+
     }
 
 });
@@ -1342,7 +1348,7 @@ router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (req
             });
 
     } catch (error) {
-        response.status(500).send(Errors.serverError);
+     response.status(500).send(Errors.serverError);
     }
 
 });

@@ -28,7 +28,7 @@ router.post('/upload-payment', verifyToken, verifyStudent, async (request, respo
             .input('amount', sql.Int, data.paymentForm.deposit.totalPaid)
             .input('paymentDate', sql.Date, data.paymentForm.deposit.paymentDate)
             .input('externalNote', sql.VarChar(50), data.paymentForm.deposit.externalNote)
-            .input('paymentStatus', sql.Int, 0)
+            .input('paymentStatus', sql.Int, 1)
             .execute('uploadPayment', function (error, result) {
                 if (error) {
                     console.error(error);
