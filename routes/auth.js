@@ -347,7 +347,8 @@ router.post('/change-password-verification', verifyToken, async (request, respon
                                                     await pool.request()
                                                         .input('username', sql.Char(7), payload.username)
                                                         .input('password', sql.VarChar(300), hash)
-                                                        .query('UPDATE Users SET password = @password, verified = 1 WHERE username = @username', (error, result) => {
+                                                        .input('recoveryEmail', sql.VarChar(50), payload.email)
+                                                        .query('UPDATE Users SET password = @password, verified = 1, recoveryEmail = @recoveryEmail WHERE username = @username', (error, result) => {
                                                             if (error) {
                                                                 response.status(500).send(Errors.serverError);
                                                             } else {

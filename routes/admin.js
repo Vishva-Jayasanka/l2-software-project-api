@@ -18,6 +18,14 @@ function verifyAdmin(request, response, next) {
     }
 }
 
+function verifyAdminOrTeacher(request, response, next) {
+    if (request.role === 1 || request.role === 2) {
+        next();
+    } else {
+        return response.status(401).send(Errors.unauthorizedRequest);
+    }
+}
+
 router.post('/check-module', verifyToken, verifyAdmin, async (request, response) => {
 
     let moduleCode = request.body.moduleCode;
@@ -514,7 +522,7 @@ router.post('/get-module-attendance', verifyToken, verifyAdmin, async (request, 
 
 });
 
-router.post('/get-detailed-student-attendance', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/get-detailed-student-attendance', verifyToken, verifyAdminOrTeacher, async (request, response) => {
 
     const data = request.body;
 
@@ -569,7 +577,7 @@ router.post('/get-detailed-module-attendance', verifyToken, verifyAdmin, async (
 
 });
 
-router.post('/get-module-results-view', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/get-module-results-view', verifyToken, verifyAdminOrTeacher, async (request, response) => {
 
     const moduleCode = request.body.moduleCode;
 
@@ -605,7 +613,7 @@ router.post('/get-module-results-view', verifyToken, verifyAdmin, async (request
 
 });
 
-router.post('/get-student-results', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/get-student-results', verifyToken, verifyAdminOrTeacher, async (request, response) => {
 
     const studentID = request.body.studentID;
 
@@ -631,7 +639,7 @@ router.post('/get-student-results', verifyToken, verifyAdmin, async (request, re
 
 });
 
-router.post('/get-student-attendance', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/get-student-attendance', verifyToken, verifyAdminOrTeacher, async (request, response) => {
 
     const studentID = request.body.studentID;
 
@@ -1133,7 +1141,7 @@ router.post('/update-academic-calender', verifyToken, verifyAdmin, async (reques
 
 });
 
-router.post('/check-keyword', verifyToken, verifyAdmin, async (request, response) => {
+router.post('/check-keyword', verifyToken, verifyAdminOrTeacher, async (request, response) => {
 
     const keyword = request.body.keyword;
 
@@ -1290,7 +1298,7 @@ router.post('/upload-payment', verifyToken, async (request, response) => {
             .input('bank', sql.VarChar(50), data.deposit.bankName)
             .input('studentID', sql.Char(7), data.depositor.registrationNumber)
             .input('externalNote', sql.VarChar(50), data.deposit.externalNote)
-            .input('paymentStatus', sql.Int, 2)
+            .input('paymentStatus', sql.Int, request.role ===  1 ? 2 : 1)
             .input('new', sql.Bit, data.new)
             .input('role', sql.Int, request.role)
             .execute('uploadPayment', function (error, result) {
