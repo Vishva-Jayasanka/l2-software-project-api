@@ -43,7 +43,7 @@ module.exports = {
                                     bellow to reset your password.
                                 </p>
                                 <div style="width: 100%; text-align: center; margin: 10px 0 10px 0">
-                                    <a href="http://localhost:4200/auth/reset-password;token=${token}">
+                                    <a href="http://localhost:4200/#/auth/reset-password;token=${token}">
                                         <button style="height: 40px; width: 130px; font-weight: 550; border: 3px solid lightgray; border-radius: 20px">
                                             <span style="font-weight: 550">Reset Password</span>
                                         </button>

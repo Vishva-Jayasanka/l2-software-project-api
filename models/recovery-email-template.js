@@ -41,7 +41,7 @@ module.exports = {
                                     bellow to verify its you.
                                 </p>
                                 <div style="width: 100%; text-align: center; margin: 10px 0 10px 0">
-                                    <a href="http://localhost:4200/auth/${link};token=${token};email=${email}">
+                                    <a href="http://localhost:4200/#/auth/${link};token=${token};email=${email}">
                                         <button style="height: 40px; width: 130px; font-weight: 550; border: 3px solid lightgray; border-radius: 20px">
                                             <span style="font-weight: 550">Verify Email</span>
                                         </button>
