@@ -1012,7 +1012,7 @@ router.post('/get-request-documents', (request, response) => {
     const data = request.body;
 
     try {
-        glob('./request-documents/*'+ '-' + data.requestID + '-*.png', {},(error, files) => {
+        glob('./request-documents/*' + '-' + data.requestID + '-*.png', {}, (error, files) => {
             if (error) {
                 response.status(200).send(Errors.serverError);
             } else {
@@ -1307,10 +1307,12 @@ router.post('/upload-payment', verifyToken, async (request, response) => {
                                 paymentID: result.returnValue,
                                 message: 'Request received successfully'
                             });
-                        } else {response.status(401).send({
-                            status: false,
-                            message: 'Malformed request syntax'
-                        })}
+                        } else {
+                            response.status(401).send({
+                                status: false,
+                                message: 'Malformed request syntax'
+                            })
+                        }
                     } else {
                         response.status(401).send(Errors.unauthorizedRequest)
                     }
@@ -1318,11 +1320,7 @@ router.post('/upload-payment', verifyToken, async (request, response) => {
             });
 
     } catch (error) {
-    if(error){
-    console.log(error);
-     response.status(500).send(Errors.serverError);
-    }
-
+        response.status(500).send(Errors.serverError);
     }
 
 });
@@ -1348,7 +1346,7 @@ router.post('/get-student-payment-details', verifyToken, verifyAdmin, async (req
             });
 
     } catch (error) {
-     response.status(500).send(Errors.serverError);
+        response.status(500).send(Errors.serverError);
     }
 
 });
@@ -1497,9 +1495,9 @@ router.post('/get-registered-users', verifyToken, verifyAdmin, async (request, r
 
 router.post('/get-print-list', verifyToken, verifyAdmin, async (request, response) => {
     const type = request.body.type;
-    try{
+    try {
         const pool = await poolPromise;
-        if(type === 'confirmed') {
+        if (type === 'confirmed') {
             await pool.request()
                 .input('courseID', sql.Int, request.body.courseID)
                 .input('academicYear', sql.Int, request.body.academicYear)
@@ -1602,25 +1600,25 @@ router.post('/get-enrollments', verifyToken, verifyAdmin, async (request, respon
             .input('offset', sql.Int, offset)
             .input('count', sql.Int, count)
             .execute('getEnrollments', (error, result) => {
-               if (error) {
-                   console.log(error);
-                   response.status(500).send(Errors.serverError);
-               } else {
+                if (error) {
+                    console.log(error);
+                    response.status(500).send(Errors.serverError);
+                } else {
 
-                   const numRows = result.recordsets[0][0].count;
-                   const enrollments = result.recordsets[1];
-                   const modules = result.recordsets[2];
+                    const numRows = result.recordsets[0][0].count;
+                    const enrollments = result.recordsets[1];
+                    const modules = result.recordsets[2];
 
-                   for (let enrollment of enrollments) {
-                       enrollment.modules = modules.filter(module => module.enrollmentID === enrollment.enrollmentID).map(item => item.moduleCode);
-                   }
+                    for (let enrollment of enrollments) {
+                        enrollment.modules = modules.filter(module => module.enrollmentID === enrollment.enrollmentID).map(item => item.moduleCode);
+                    }
 
-                   response.status(200).send({
-                       status: true,
-                       numRows,
-                       enrollments
-                   });
-               }
+                    response.status(200).send({
+                        status: true,
+                        numRows,
+                        enrollments
+                    });
+                }
             });
     } catch (error) {
         response.status(500).send(Errors.serverError);
