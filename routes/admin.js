@@ -766,6 +766,7 @@ router.post('/register-student', verifyToken, verifyAdmin, async (request, respo
                                 .input('courseID', sql.Int, data.courseName)
                                 .input('academicYear', sql.Int, data.academicYear)
                                 .input('fullName', sql.VarChar(100), data.name.fullName)
+                                .input('title', sql.VarChar(100), data.name.title)
                                 .input('nameWithInitials', sql.VarChar(50), data.name.nameWithInitials)
                                 .input('firstName', sql.VarChar(20), name[0])
                                 .input('lastName', sql.VarChar(20), name[1])
