@@ -1358,7 +1358,7 @@ router.post('/get-payment-details', verifyToken, verifyAdmin, async (request, re
     try {
 
         const pool = await poolPromise;
-        const result = await pool.request()
+        await pool.request()
             .input('slipNo', sql.Int, slipNo)
             .execute('viewPaymentDetails', (error, result) => {
                 if (error) {
