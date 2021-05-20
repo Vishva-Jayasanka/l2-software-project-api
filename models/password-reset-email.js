@@ -19,7 +19,7 @@ module.exports = {
                             </td>
                             <td style="width: 50px; text-align: center">
                                 <img
-                                    src="http://localhost:3000/profile-pictures/${username}.png"
+                                    src="http://13.233.98.120:3000/profile-pictures/${username}.png"
                                     alt="${firstName}"
                                     style="width: 40px; height: 40px; border-radius: 50%; border: 3px solid #c8c8c8"/>
                             </td>
